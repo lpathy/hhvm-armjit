@@ -148,7 +148,7 @@ void unstashSavedRIP(Vout& v, Vreg fp) {
  */
 template<class GenFunc>
 void alignNativeStack(Vout& v, GenFunc gen) {
-  if (arch() != Arch::X64) return gen(v);
+  if (arch() == Arch::ARM) return arm::alignNativeStack(v, gen);
   return x64::alignNativeStack(v, gen);
 }
 
@@ -589,13 +589,17 @@ TCA emitHandleSRHelper(CodeBlock& cb) {
     loadMCG(v, args[0]);
     v << copy{rsp(), args[1]};
     auto const meth = &MCGenerator::handleServiceRequest;
-    v << vcall{
-      CppCall::method(meth),
-      v.makeVcallArgs({args}),
-      v.makeTuple({ret}),
-      Fixup{},
-      DestType::SSA
-    };
+
+    // Align the native stack
+    alignNativeStack(v, [&] (Vout& v) {
+      v << vcall{
+        CppCall::method(meth),
+        v.makeVcallArgs({args}),
+        v.makeTuple({ret}),
+        Fixup{},
+        DestType::SSA
+      };
+    });
 
     // Pop the service ReqInfo off the stack.
     v << lea{rsp()[reqinfo_sz], rsp()};

@@ -48,6 +48,13 @@ inline void unstashSavedRIP(Vout& v, Vreg fp) {
   v << load{fp[AROFF(m_savedRip)], PhysReg(rLinkReg)};
 }
 
+template<class GenFunc>
+void alignNativeStack(Vout& v, GenFunc gen) {
+  v << subqi{8, reg::rsp, reg::rsp, v.makeReg()};
+  gen(v);
+  v << addqi{8, reg::rsp, reg::rsp, v.makeReg()};
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 TCA emitFunctionEnterHelper(CodeBlock& cb, UniqueStubs& us);

@@ -154,6 +154,16 @@ void register_catch_block(const Venv& env, const Venv::LabelPatch& p) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+bool emit(Venv& env, const push& i) {
+  env.pushes ^= 1;
+  return false;
+}
+
+bool emit(Venv& env, const pop& i) {
+  env.pushes ^= 1;
+  return false;
+}
+
 bool emit(Venv& env, const bindjmp& i) {
   auto const jmp = emitSmashableJmp(*env.cb, env.cb->frontier());
   env.stubs.push_back({jmp, nullptr, i});

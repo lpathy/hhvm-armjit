@@ -43,7 +43,7 @@ struct Venv {
   struct LabelPatch { CodeAddress instr; Vlabel target; };
   struct SvcReqPatch { CodeAddress jmp, jcc; Vinstr svcreq; };
 
-  Venv(const Vunit& unit, Vtext& text) : unit(unit), text(text) {}
+  Venv(const Vunit& unit, Vtext& text) : unit(unit), text(text), pushes(0) {}
 
   const Vunit& unit;
   Vtext& text;
@@ -72,6 +72,12 @@ struct Venv {
    * both the service request and its stub have the same destination.
    */
   jit::vector<SvcReqPatch> stubs;
+
+  /*
+   * Keeps track of number of pushes needed to make the stack pointer aligned
+   * for stub calls
+   */
+  int pushes;
 };
 
 /*

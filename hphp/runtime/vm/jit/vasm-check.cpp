@@ -119,6 +119,8 @@ bool checkCalls(Vunit& unit, jit::vector<Vlabel>& blocks) {
         case Vinstr::call:
         case Vinstr::callm:
         case Vinstr::callr:
+        case Vinstr::bl:
+        case Vinstr::blr:
         case Vinstr::callarray:
         case Vinstr::mccall:
         case Vinstr::contenter:

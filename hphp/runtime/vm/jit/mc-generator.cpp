@@ -107,6 +107,8 @@
 #include "hphp/runtime/vm/type-profile.h"
 #include "hphp/runtime/vm/unwind.h"
 
+#include "hphp/vixl/a64/macro-assembler-a64.h"
+
 namespace HPHP { namespace jit {
 
 TRACE_SET_MOD(mcg);
@@ -1040,8 +1042,30 @@ MCGenerator::bindJmp(TCA toSmash, SrcKey destSk, ServiceRequest req,
     return tDest;
   }
 
-  DecodedInstruction di(toSmash);
-  if (di.isBranch() && !di.isJmp()) {
+  bool isBranch, isJmp;
+  switch (arch()) {
+  case Arch::X64:
+    {
+      DecodedInstruction di(toSmash);
+      isBranch = di.isBranch();
+      isJmp = di.isJmp();
+    }
+    break;
+  case Arch::ARM:
+    {
+      // TODO: Write a complete decoder
+      vixl::Instruction *a64inst = vixl::Instruction::Cast(toSmash);
+      isJmp = false;
+      if (a64inst->Bits(31, 24) == 0x54 && a64inst->Bit(4) == 0)
+        isBranch = true;
+      else
+        isBranch = false;
+    }
+    break;
+  default:
+    assertx(0);
+  }
+  if (isBranch && !isJmp) {
     auto const target = smashableJccTarget(toSmash);
     assertx(target);
 

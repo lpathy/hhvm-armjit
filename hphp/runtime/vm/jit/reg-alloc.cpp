@@ -228,6 +228,8 @@ void getEffects(const Abi& abi, const Vinstr& i,
     case Vinstr::call:
     case Vinstr::callm:
     case Vinstr::callr:
+    case Vinstr::bl:
+    case Vinstr::blr:
       defs = abi.all() - (abi.calleeSaved | rvmfp());
       switch (arch()) {
         case Arch::ARM: defs.add(PhysReg(arm::rLinkReg)); break;

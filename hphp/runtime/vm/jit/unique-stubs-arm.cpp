@@ -156,7 +156,8 @@ void emitEnterTCHelper(CodeBlock& cb, UniqueStubs& us) {
 
     // Align (or unalign) the native stack (depending on whether we're calling
     // into a prologue or into resumeHelper).
-    v << lea{rsp()[-8], rsp()};
+    if(RuntimeOption::EvalSimulateARM)
+      v << lea{rsp()[-8], rsp()};
 
     auto const sf = v.makeReg();
     v << testq{rarg(5), rarg(5), sf};

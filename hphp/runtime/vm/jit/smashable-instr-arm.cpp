@@ -155,7 +155,41 @@ void smashJmp(TCA inst, TCA target) {
 
 void smashJcc(TCA inst, TCA target, ConditionCode cc) {
   // TODO: How to modify target and condition code atomically?
-  assertx(cc == CC_None);
+  // assertx(cc == CC_None);
+  switch(cc) {
+  case CC_O:
+    *((uint32_t *) inst) &= 0xfffffff0;
+    *((uint32_t *) inst) |= 0x6;
+    break;
+  case CC_NO:
+    *((uint32_t *) inst) &= 0xfffffff0;
+    *((uint32_t *) inst) |= 0x7;
+    break;
+  case CC_E:
+    *((uint32_t *) inst) &= 0xfffffff0;
+    *((uint32_t *) inst) |= 0x0;
+    break;
+  case CC_NE:
+    *((uint32_t *) inst) &= 0xfffffff0;
+    *((uint32_t *) inst) |= 0x1;
+    break;
+  case CC_L:
+    *((uint32_t *) inst) &= 0xfffffff0;
+    *((uint32_t *) inst) |= 0xb;
+    break;
+  case CC_GE:
+    *((uint32_t *) inst) &= 0xfffffff0;
+    *((uint32_t *) inst) |= 0xa;
+    break;
+  case CC_LE:
+    *((uint32_t *) inst) &= 0xfffffff0;
+    *((uint32_t *) inst) |= 0xd;
+    break;
+  case CC_G:
+    *((uint32_t *) inst) &= 0xfffffff0;
+    *((uint32_t *) inst) |= 0xc;
+    break;
+  }
   smashInstr(inst, target, smashableJccLen());
 }
 

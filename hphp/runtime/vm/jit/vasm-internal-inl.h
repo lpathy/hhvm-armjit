@@ -103,6 +103,8 @@ void emit_svcreq_stub(Venv& env, const Venv::SvcReqPatch& p);
  * Return true if the instruction was supported.
  */
 template<class Inst> bool emit(Venv& env, const Inst&) { return false; }
+bool emit(Venv& env, const push& i);
+bool emit(Venv& env, const pop& i);
 bool emit(Venv& env, const bindjmp& i);
 bool emit(Venv& env, const bindjcc& i);
 bool emit(Venv& env, const bindjcc1st& i);
