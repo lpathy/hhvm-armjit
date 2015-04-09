@@ -237,7 +237,11 @@ TCA emitFreeLocalsHelpers(CodeBlock& cb, UniqueStubs& us) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#ifdef __aarch64__
+void enterTCExit() { }
+#else
 extern "C" void enterTCExit();
+#endif
 
 TCA emitCallToExit(CodeBlock& cb) {
   X64Assembler a { cb };
