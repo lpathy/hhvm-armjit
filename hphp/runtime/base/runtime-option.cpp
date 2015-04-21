@@ -440,7 +440,7 @@ static inline bool hhirRelaxGuardsDefault() {
 }
 
 static inline bool evalJitDefault() {
-#if defined(__CYGWIN__) || defined(_MSC_VER)
+#if defined(__APPLE__) || defined(__CYGWIN__) || defined(_MSC_VER) || defined(__aarch64__)
   return false;
 #else
   return true;
