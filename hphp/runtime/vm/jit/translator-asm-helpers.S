@@ -105,12 +105,8 @@ ETCH_LABEL(enterTCHelper$prologue):
 
 ///////////////////////////////////////////////////////////////////////////////
 #elif defined(__aarch64__)
-  .globl handleSRHelper
-handleSRHelper:
   .globl enterTCHelper
 enterTCHelper:
-  .globl enterTCServiceReq
-enterTCServiceReq:
   .globl enterTCExit
 enterTCExit:
   brk 0
