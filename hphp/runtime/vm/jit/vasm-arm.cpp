@@ -195,8 +195,12 @@ struct Vgen {
   }
   void emit(tbcc i);
   void emit(const testl& i) { a->Tst(W(i.s1), W(i.s0)); }
+  void emit(const testq& i) { a->Tst(X(i.s1), X(i.s0)); }
   void emit(const testli& i) { a->Tst(W(i.s1), i.s0.l()); }
   void emit(const ud2& i) { a->Brk(1); }
+  void emit(const xorl& i) {
+    a->Eor(W(i.d), W(i.s1), W(i.s0) /* xxx flags */);
+  }
   void emit(const xorq& i) {
     a->Eor(X(i.d), X(i.s1), X(i.s0) /* xxx flags */);
   }
