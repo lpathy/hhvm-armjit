@@ -1,6 +1,3 @@
-"future"
-- ARM Jit works!
-
 "Rogers" 10-Sep-2015
 - Update to jemalloc 4.0.0.
 - Convert more architecture dependent code to VASM.
