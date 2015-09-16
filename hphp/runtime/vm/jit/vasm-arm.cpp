@@ -133,12 +133,24 @@ struct Vgen {
   void emit(const syncpoint& i);
 
   // instructions
-  void emit(const addli& i) { a->Add(W(i.d), W(i.s1), i.s0.l(), vixl::SetFlags); }
-  void emit(const addq& i) { a->Add(X(i.d), X(i.s1), X(i.s0), vixl::SetFlags); }
-  void emit(const addqi& i) { a->Add(X(i.d), X(i.s1), i.s0.l(), vixl::SetFlags); }
-  void emit(const andq& i) { a->And(X(i.d), X(i.s1), X(i.s0) /* xxx flags */); }
-  void emit(const andqi& i) { a->And(X(i.d), X(i.s1), i.s0.l() /* xxx flags */); }
-  void emit(const andli& i) { a->And(W(i.d), W(i.s1), i.s0.l() /* xxx flags */); }
+  void emit(const addli& i) {
+    a->Add(W(i.d), W(i.s1), i.s0.l(), vixl::SetFlags);
+  }
+  void emit(const addq& i) {
+    a->Add(X(i.d), X(i.s1), X(i.s0), vixl::SetFlags);
+  }
+  void emit(const addqi& i) {
+    a->Add(X(i.d), X(i.s1), i.s0.l(), vixl::SetFlags);
+  }
+  void emit(const andq& i) {
+    a->And(X(i.d), X(i.s1), X(i.s0) /* xxx flags */);
+  }
+  void emit(const andqi& i) {
+    a->And(X(i.d), X(i.s1), i.s0.l() /* xxx flags */);
+  }
+  void emit(const andli& i) {
+    a->And(W(i.d), W(i.s1), i.s0.l() /* xxx flags */);
+  }
   void emit(const sar& i) { a->asrv(X(i.d), X(i.s0), X(i.s1)); }
   void emit(const brk& i) { a->Brk(i.code); }
   void emit(cbcc i);
@@ -162,21 +174,35 @@ struct Vgen {
   void emit(const imul& i) { a->Mul(X(i.d), X(i.s0), X(i.s1)); }
   void emit(const neg& i) { a->Neg(X(i.d), X(i.s), vixl::SetFlags); }
   void emit(const not& i) { a->Mvn(X(i.d), X(i.s)); }
-  void emit(const orq& i) { a->Orr(X(i.d), X(i.s1), X(i.s0) /* xxx flags? */); }
-  void emit(const orqi& i) { a->Orr(X(i.d), X(i.s1), i.s0.l() /* xxx flags? */); }
+  void emit(const orq& i) {
+    a->Orr(X(i.d), X(i.s1), X(i.s0) /* xxx flags? */);
+  }
+  void emit(const orqi& i) {
+    a->Orr(X(i.d), X(i.s1), i.s0.l() /* xxx flags? */);
+  }
   void emit(const ret& i) { a->Ret(); }
   void emit(const storeb& i) { a->Strb(W(i.s), M(a, i.m)); }
   void emit(const storel& i) { a->Str(W(i.s), M(a, i.m)); }
   void emit(const setcc& i) { PhysReg r(i.d.asReg()); a->Cset(X(r), C(i.cc)); }
-  void emit(const subli& i) { a->Sub(W(i.d), W(i.s1), i.s0.l(), vixl::SetFlags); }
-  void emit(const subq& i) { a->Sub(X(i.d), X(i.s1), X(i.s0), vixl::SetFlags); }
-  void emit(const subqi& i) { a->Sub(X(i.d), X(i.s1), i.s0.l(), vixl::SetFlags); }
+  void emit(const subli& i) {
+    a->Sub(W(i.d), W(i.s1), i.s0.l(), vixl::SetFlags);
+  }
+  void emit(const subq& i) {
+    a->Sub(X(i.d), X(i.s1), X(i.s0), vixl::SetFlags);
+  }
+  void emit(const subqi& i) {
+    a->Sub(X(i.d), X(i.s1), i.s0.l(), vixl::SetFlags);
+  }
   void emit(tbcc i);
   void emit(const testl& i) { a->Tst(W(i.s1), W(i.s0)); }
   void emit(const testli& i) { a->Tst(W(i.s1), i.s0.l()); }
   void emit(const ud2& i) { a->Brk(1); }
-  void emit(const xorq& i) { a->Eor(X(i.d), X(i.s1), X(i.s0) /* xxx flags */); }
-  void emit(const xorqi& i) { a->Eor(X(i.d), X(i.s1), i.s0.l() /* xxx flags */); }
+  void emit(const xorq& i) {
+    a->Eor(X(i.d), X(i.s1), X(i.s0) /* xxx flags */);
+  }
+  void emit(const xorqi& i) {
+    a->Eor(X(i.d), X(i.s1), i.s0.l() /* xxx flags */);
+  }
 
 private:
   CodeBlock& frozen() { return text.frozen().code; }
