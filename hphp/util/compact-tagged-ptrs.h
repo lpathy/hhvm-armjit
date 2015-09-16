@@ -82,9 +82,7 @@ struct CompactTaggedPtr {
   Opaque getOpaque() const { return std::make_pair(m_ptr, m_size); }
 
   void set(TagType ttag, T* ptr) {
-    /* Commenting out for warning.
-    auto const tag = static_cast<uint32_t>(ttag);
-    assert(tag <= 0xffffu);*/
+    assert(static_cast<uint32_t>(ttag) <= 0xffffu);
     m_tag = ttag;
     m_ptr = ptr;
   }
