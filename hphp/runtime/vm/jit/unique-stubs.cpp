@@ -39,6 +39,7 @@
 #include "hphp/runtime/vm/jit/smashable-instr.h"
 #include "hphp/runtime/vm/jit/stack-offsets.h"
 #include "hphp/runtime/vm/jit/translator-inline.h"
+#include "hphp/runtime/vm/jit/unique-stubs-arm.h"
 #include "hphp/runtime/vm/jit/unique-stubs-x64.h"
 #include "hphp/runtime/vm/jit/vasm-gen.h"
 #include "hphp/runtime/vm/jit/vasm-instr.h"
@@ -116,16 +117,14 @@ Vinstr simplecall(Vout& v, F helper, Vreg arg, Vreg d) {
  * Return the set of live registers.
  */
 RegSet syncForLLVMCatch(Vout& v) {
-  if (arch() != Arch::X64) return RegSet{};
-  return x64::syncForLLVMCatch(v);
+  return ARCH_SWITCH_CALL(syncForLLVMCatch, v);
 }
 
 /*
  * Load RIP from wherever it's stashed at the beginning of a new native frame.
  */
 void loadSavedRIP(Vout& v, Vreg d) {
-  if (arch() != Arch::X64) not_implemented();
-  return x64::loadSavedRIP(v, d);
+  return ARCH_SWITCH_CALL(loadSavedRIP, v, d);
 }
 
 /*
@@ -135,16 +134,14 @@ void loadSavedRIP(Vout& v, Vreg d) {
  * TODO(#7728856): Use this for EnterFrame as well.
  */
 void stashSavedRIP(Vout& v, Vreg fp) {
-  if (arch() != Arch::X64) not_implemented();
-  return x64::stashSavedRIP(v, fp);
+  return ARCH_SWITCH_CALL(stashSavedRIP, v, fp);
 }
 
 /*
  * Do the inverse of stashSavedRIP().
  */
 void unstashSavedRIP(Vout& v, Vreg fp) {
-  if (arch() != Arch::X64) not_implemented();
-  return x64::unstashSavedRIP(v, fp);
+  return ARCH_SWITCH_CALL(unstashSavedRIP, v, fp);
 }
 
 /*
