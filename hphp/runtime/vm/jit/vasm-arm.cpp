@@ -68,10 +68,20 @@ vixl::FPRegister D(Vreg r) {
   return x2simd(r);
 }
 
-// convert Vptr to MemOperand
-vixl::MemOperand M(Vptr p) {
-  assertx(p.base.isValid() && !p.index.isValid());
-  return X(p.base)[p.disp];
+/*
+ * Convert a Vptr to a MemOperand.
+ *
+ * If the Vptr is too fancy, this will emit instructions.
+ */
+vixl::MemOperand M(vixl::MacroAssembler* a, Vptr p) {
+  assertx(p.base.isValid());
+
+  if (!p.index.isValid()) {
+    return X(p.base)[p.disp];
+  }
+  a->Mov(rAsm, p.scale);
+  a->Mul(rAsm, X(p.index), rAsm);
+  return rAsm[p.disp];
 }
 
 vixl::Condition C(ConditionCode cc) {
@@ -142,10 +152,10 @@ struct Vgen {
   void emit(jcc i);
   void emit(jmp i);
   void emit(const lea& i);
-  void emit(const loadl& i) { a->Ldr(W(i.d), M(i.s)); /* assume 0-extends */ }
-  void emit(const loadzbl& i) { a->Ldrb(W(i.d), M(i.s)); }
+  void emit(const loadl& i) { a->Ldr(W(i.d), M(a, i.s)); /* assume 0-extends */ }
+  void emit(const loadzbl& i) { a->Ldrb(W(i.d), M(a, i.s)); }
   void emit(const shl& i) { a->lslv(X(i.d), X(i.s0), X(i.s1)); }
-  void emit(const shrli& i);
+  void emit(const shrli& i) { a->Lsr(W(i.d), W(i.s1), i.s0.l()); }
   void emit(const movzbl& i) { a->Uxtb(W(i.d), W(i.s)); }
   void emit(const movzbq& i) { a->Uxtb(W(Vreg32(size_t(i.d))), W(i.s)); }
   void emit(const imul& i) { a->Mul(X(i.d), X(i.s0), X(i.s1)); }
@@ -154,8 +164,8 @@ struct Vgen {
   void emit(const orq& i) { a->Orr(X(i.d), X(i.s1), X(i.s0) /* xxx flags? */); }
   void emit(const orqi& i) { a->Orr(X(i.d), X(i.s1), i.s0.l() /* xxx flags? */); }
   void emit(const ret& i) { a->Ret(); }
-  void emit(const storeb& i) { a->Strb(W(i.s), M(i.m)); }
-  void emit(const storel& i) { a->Str(W(i.s), M(i.m)); }
+  void emit(const storeb& i) { a->Strb(W(i.s), M(a, i.m)); }
+  void emit(const storel& i) { a->Str(W(i.s), M(a, i.m)); }
   void emit(const setcc& i) { PhysReg r(i.d.asReg()); a->Cset(X(r), C(i.cc)); }
   void emit(const subli& i) { a->Sub(W(i.d), W(i.s1), i.s0.l(), vixl::SetFlags); }
   void emit(const subq& i) { a->Sub(X(i.d), X(i.s1), X(i.s0), vixl::SetFlags); }
@@ -313,17 +323,17 @@ void Vgen::emit(const ldimmb& i) {
 
 void Vgen::emit(const load& i) {
   if (i.d.isGP()) {
-    a->Ldr(X(i.d), M(i.s));
+    a->Ldr(X(i.d), M(a, i.s));
   } else {
-    a->Ldr(D(i.d), M(i.s));
+    a->Ldr(D(i.d), M(a, i.s));
   }
 }
 
 void Vgen::emit(const store& i) {
   if (i.s.isGP()) {
-    a->Str(X(i.s), M(i.d));
+    a->Str(X(i.s), M(a, i.d));
   } else {
-    a->Str(D(i.s), M(i.d));
+    a->Str(D(i.s), M(a, i.d));
   }
 }
 
@@ -398,13 +408,6 @@ void Vgen::emit(tbcc i) {
     }
   }
   emit(jmp{i.targets[0]});
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void Vgen::emit(const shrli& i) {
-  a->Mov(rAsm, i.s0.l());
-  a->lsrv(W(i.d), rAsm.W(), W(i.s1));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
