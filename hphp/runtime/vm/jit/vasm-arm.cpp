@@ -128,6 +128,7 @@ struct Vgen {
   void emit(const addqi& i) { a->Add(X(i.d), X(i.s1), i.s0.l(), vixl::SetFlags); }
   void emit(const andq& i) { a->And(X(i.d), X(i.s1), X(i.s0) /* xxx flags */); }
   void emit(const andqi& i) { a->And(X(i.d), X(i.s1), i.s0.l() /* xxx flags */); }
+  void emit(const andli& i) { a->And(W(i.d), W(i.s1), i.s0.l() /* xxx flags */); }
   void emit(const sar& i) { a->asrv(X(i.d), X(i.s0), X(i.s1)); }
   void emit(const brk& i) { a->Brk(i.code); }
   void emit(cbcc i);
@@ -144,6 +145,7 @@ struct Vgen {
   void emit(const loadl& i) { a->Ldr(W(i.d), M(i.s)); /* assume 0-extends */ }
   void emit(const loadzbl& i) { a->Ldrb(W(i.d), M(i.s)); }
   void emit(const shl& i) { a->lslv(X(i.d), X(i.s0), X(i.s1)); }
+  void emit(const shrli& i);
   void emit(const movzbl& i) { a->Uxtb(W(i.d), W(i.s)); }
   void emit(const movzbq& i) { a->Uxtb(W(Vreg32(size_t(i.d))), W(i.s)); }
   void emit(const imul& i) { a->Mul(X(i.d), X(i.s0), X(i.s1)); }
@@ -396,6 +398,13 @@ void Vgen::emit(tbcc i) {
     }
   }
   emit(jmp{i.targets[0]});
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Vgen::emit(const shrli& i) {
+  a->Mov(rAsm, i.s0.l());
+  a->lsrv(W(i.d), rAsm.W(), W(i.s1));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
