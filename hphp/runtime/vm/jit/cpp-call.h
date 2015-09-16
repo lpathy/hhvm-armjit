@@ -19,6 +19,7 @@
 
 #include "hphp/runtime/base/array-data.h"
 #include "hphp/runtime/vm/jit/vasm-reg.h"
+#include "hphp/util/abi-cxx.h"
 
 #include <cstdint>
 

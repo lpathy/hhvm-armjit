@@ -2795,7 +2795,7 @@ void LLVMEmitter::emit(const retransopt& inst) {
   auto func = emitFuncPtr(folly::to<std::string>("handleSRHelper_",
                                                  argTypes.size()),
                           funcType,
-                          uint64_t(handleSRHelper));
+                          uint64_t(mcg->tx().uniqueStubs.handleSRHelper));
   auto call = m_irb.CreateCall(func, args);
   call->setCallingConv(llvm::CallingConv::X86_64_HHVM);
   call->setTailCallKind(llvm::CallInst::TCK_Tail);

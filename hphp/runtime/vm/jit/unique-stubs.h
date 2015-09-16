@@ -326,6 +326,16 @@ struct UniqueStubs {
    */
   TCA throwSwitchMode;
 
+  /*
+   * Service request stub.
+   *
+   * Called by translated code before a service request to pack argument
+   * registers into a ReqInfo and perform some other bookkeeping tasks.
+   *
+   * @see service-requests.h
+   */
+  TCA handleSRHelper;
+
 
   /////////////////////////////////////////////////////////////////////////////
 

@@ -572,6 +572,50 @@ void emitInterpOneCFHelpers(CodeBlock& cb, UniqueStubs& us,
   emit(Op::Exit, "interpOneCFHelperExit");
 }
 
+TCA emitHandleSRHelper(CodeBlock& cb) {
+  alignJmpTarget(cb);
+
+  return vwrap(cb, [] (Vout& v) {
+    storeVMRegs(v);
+
+    auto const reqinfo_sz = static_cast<int>(sizeof(svcreq::ReqInfo));
+
+    // Ensure that the ReqInfo definition doesn't change without updates to this
+    // method, but be flexible with the length of the args.
+    assertx(reqinfo_sz - sizeof(svcreq::ReqInfo::args) == 0x10);
+
+    // Push a service ReqInfo struct onto the stack
+    for (auto i = svcreq::kMaxArgs - 1; i >= 0; --i) {
+      v << push{r_svcreq_arg(i)};   // ReqInfo.args[]
+    }
+    v << push{r_svcreq_stub()};     // ReqInfo.stub (a TCA)
+    v << push{r_svcreq_req()};      // ReqInfo.req (enum ServiceRequest)
+
+    // call mcg->handleServiceRequest(ReqInfo&)
+    auto const args = VregList { v.makeReg(), v.makeReg() };
+    auto const ret = v.makeReg();
+    loadMCG(v, args[0]);
+    v << copy{rsp(), args[1]};
+    auto const meth = &MCGenerator::handleServiceRequest;
+    v << vcall{
+      CppCall::method(meth),
+      v.makeVcallArgs({args}),
+      v.makeTuple({ret}),
+      Fixup{},
+      DestType::SSA
+    };
+
+    // Pop the service ReqInfo off the stack.
+    v << addqi{reqinfo_sz, rsp(), rsp(), v.makeReg()};
+
+    // rvmtl was preserved by the callee, but vmsp and vmfp might've changed if
+    // we interpreted anything. Reload them.
+    loadVMRegs(v);
+
+    v << jmpr{ret};
+  });
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 TCA emitDecRefGeneric(CodeBlock& cb) {
@@ -641,6 +685,8 @@ void UniqueStubs::emitAll() {
   ADD(functionSurprisedOrStackOverflow,
       emitFunctionSurprisedOrStackOverflow(cold, *this));
 
+  // Order matters; handleSRHelper is required by emitInterpRet.
+  ADD(handleSRHelper,             emitHandleSRHelper(cold));
   ADD(retHelper,                  emitInterpRet(cold));
   ADD(genRetHelper,               emitInterpGenRet<false>(cold));
   ADD(asyncGenRetHelper,          emitInterpGenRet<true>(cold));

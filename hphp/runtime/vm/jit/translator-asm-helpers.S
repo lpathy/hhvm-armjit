@@ -103,46 +103,6 @@ ETCH_LABEL(enterTCHelper$prologue):
   CFI(endproc)
   ETCH_SIZE(enterTCHelper)
 
-  // handleSRHelper: Translated code will jump to this stub to perform all
-  // service requests. It calls out to C++ to handle the request, then jumps
-  // to the returned address (which may be the callToExit stub).
-  ETCH_ALIGN16
-  ETCH_SECTION(handleSRHelper)
-  .globl ETCH_NAME(handleSRHelper)
-ETCH_NAME(handleSRHelper):
-  CFI(startproc)
-
-  // Sync vmsp & vmfp
-  mov %rbx, 0x10(%r12)
-  mov %rbp, 0x20(%r12)
-
-  // Push a ServiceReqInfo struct onto the stack and call handleServiceRequest.
-  push %r8
-  push %rcx
-  push %rdx
-  push %rsi
-  push %r10
-  push %rdi
-  CFI2(adjust_cfa_offset, 0x30)
-
-  // call mcg->handleServiceRequest(%rsp)
-  mov ETCH_NAME(mcg)(%rip), ETCH_ARG1
-  mov %rsp, ETCH_ARG2
-  call MCGenerator_handleServiceRequest
-
-  // Pop the ServiceReqInfo off the stack.
-  add $0x30, %rsp
-  CFI2(adjust_cfa_offset, -0x30)
-
-  // rVmTl was preserved by the callee, but vmsp and vmfp might've changed if
-  // we interpreted anything. Reload them.
-  mov 0x10(%r12), %rbx
-  mov 0x20(%r12), %rbp
-
-  jmp *%rax
-  CFI(endproc)
-  ETCH_SIZE(handleSRHelper)
-
 ///////////////////////////////////////////////////////////////////////////////
 #elif defined(__AARCH64EL__)
   .globl enterTCHelper
