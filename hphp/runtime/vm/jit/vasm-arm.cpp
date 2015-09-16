@@ -494,6 +494,13 @@ void lower(testbim& i, Vout& v) {
   v << testli{i.s0, scratch, i.sf};
 }
 
+void lower(vcall& i, Vout& v) {
+  auto& dests = v.unit().tuples[i.d]; // list of dests
+  for (auto d : dests) {
+    v << copy{v.cns(0), d};
+  }
+}
+
 void lowerForARM(Vunit& unit) {
   assertx(check(unit));
 
