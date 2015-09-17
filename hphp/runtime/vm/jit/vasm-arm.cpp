@@ -121,6 +121,7 @@ struct Vgen {
   void emit(const copy& i);
   void emit(const copy2& i);
   void emit(const debugtrap& i) { a->Brk(0); }
+  void emit(const fallthru& i) {}
   void emit(const hcsync& i);
   void emit(const hcnocatch& i);
   void emit(const hcunwind& i);
@@ -484,9 +485,12 @@ void lower(testbim& i, Vout& v) {
 
 void lower(vcall& i, Vout& v) {
   auto& dests = v.unit().tuples[i.d]; // list of dests
-  for (auto d : dests) {
-    v << copy{v.cns(0), d};
-  }
+  v << debugtrap{};
+  for (auto d : dests) v << copy{v.cns(0), d};
+}
+
+void lower(call& i, Vout& v) {
+  v << debugtrap{};
 }
 
 void lower(push& i, Vout& v) {
