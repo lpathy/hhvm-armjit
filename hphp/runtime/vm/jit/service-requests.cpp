@@ -211,6 +211,10 @@ namespace x64 {
   static constexpr int kMovLen = 10;
   static constexpr int kLeaVmSpLen = 7;
 }
+namespace arm {
+  static constexpr int kMovLen = 16; // stupid wild assed guess
+  static constexpr int kLeaVmSpLen = 16; // stupid wild assed guess
+}
 
 size_t stub_size() {
   // The extra args are the request type and the stub address.
@@ -220,7 +224,7 @@ size_t stub_size() {
     case Arch::X64:
       return kTotalArgs * x64::kMovLen + x64::kLeaVmSpLen;
     case Arch::ARM:
-      return kTotalArgs * 4 + 4; // asuming mov and lea are 4-byte instrs
+      return kTotalArgs * arm::kMovLen + arm::kLeaVmSpLen;
   }
   not_reached();
 }
@@ -242,7 +246,15 @@ FPInvOffset extract_spoff(TCA stub) {
       }
 
     case Arch::ARM:
-      not_implemented();
+      {
+        constexpr uint32_t lea_offset_mask = 0xfff << 10;
+        constexpr uint32_t lea_instr = 0x910003b3;
+        uint32_t inst = *(uint32_t*)stub;
+        assert((inst & ~lea_offset_mask) == lea_instr);
+        auto offBytes = (inst & ~lea_instr) >> 10;
+        always_assert((offBytes % sizeof(Cell)) == 0);
+        return FPInvOffset{-(offBytes / int32_t{sizeof(Cell)})};
+      }
   }
   not_reached();
 }

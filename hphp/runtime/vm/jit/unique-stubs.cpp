@@ -89,8 +89,8 @@ void storeVMRegs(Vout& v) {
 }
 
 void loadMCG(Vout& v, Vreg d) {
-  auto const imcg = reinterpret_cast<uintptr_t>(&mcg);
-  v << copy{v.cns(imcg), d};
+  // bake the mcg pointer value into jit code.
+  v << copy{v.cns(mcg), d};
 }
 
 /*
