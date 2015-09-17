@@ -49,7 +49,7 @@ void lower_vcall(Vunit& unit, Inst& inst, Vlabel b, size_t i) {
   auto const is_smashable = !is_vcall && vinvoke.smashable;
   auto const& vargs = unit.vcallArgs[inst.args];
   auto const dests = unit.tuples[inst.d];
-  auto const destType = inst.destType
+  auto const destType = inst.destType;
 
   auto scratch = unit.makeScratchBlock();
   SCOPE_EXIT { unit.freeScratchBlock(scratch); };
