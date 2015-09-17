@@ -49,6 +49,7 @@ void lower_vcall(Vunit& unit, Inst& inst, Vlabel b, size_t i) {
   auto const is_smashable = !is_vcall && vinvoke.smashable;
   auto const& vargs = unit.vcallArgs[inst.args];
   auto const dests = unit.tuples[inst.d];
+  auto const destType = inst.destType
 
   auto scratch = unit.makeScratchBlock();
   SCOPE_EXIT { unit.freeScratchBlock(scratch); };
@@ -119,9 +120,10 @@ void lower_vcall(Vunit& unit, Inst& inst, Vlabel b, size_t i) {
   } else if (vcall.nothrow) {
     v << nothrow{};
   }
+  // After this point, when lowering vinvoke, `inst' is no longer valid.
 
   // Copy the call result to the destination register(s).
-  switch (inst.destType) {
+  switch (destType) {
     case DestType::TV:
       static_assert(offsetof(TypedValue, m_data) == 0, "");
       static_assert(offsetof(TypedValue, m_type) == 8, "");
