@@ -163,7 +163,11 @@ struct Vgen {
   void emit(const incq& i) { a->Add(X(i.d), X(i.s), 1LL, vixl::SetFlags); }
   void emit(jcc i);
   void emit(jmp i);
-  void emit(jmpr i) { a->Br(X(i.target)); }
+  void emit(const jmpr& i) { a->Br(X(i.target)); }
+  void emit(const jmpi& i) {
+    // doesn't need to be smashable, just doing this because i'm lazy
+    emitSmashableJmp(*codeBlock, i.target);
+  }
   void emit(const lea& i);
   void emit(const loadl& i) { a->Ldr(W(i.d), M(a, i.s)); /* assume 0-extends */ }
   void emit(const loadzbl& i) { a->Ldrb(W(i.d), M(a, i.s)); }

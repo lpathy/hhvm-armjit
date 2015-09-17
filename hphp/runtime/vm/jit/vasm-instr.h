@@ -683,12 +683,22 @@ struct incq { Vreg64 s, d; VregSF sf; };
 struct incqm { Vptr m; VregSF sf; };
 struct incqmlock { Vptr m; VregSF sf; };
 struct incwm { Vptr m; VregSF sf; };
+
+// jump within this vunit to the target block(s)
 struct jcc { ConditionCode cc; VregSF sf; Vlabel targets[2]; };
-struct jcci { ConditionCode cc; VregSF sf; Vlabel target; TCA taken; };
 struct jmp { Vlabel target; };
+
+// if condition is true, jump out of this vunit to taken immediate address.
+// otherwise, jump within this vunit to the target block.
+struct jcci { ConditionCode cc; VregSF sf; Vlabel target; TCA taken; };
+
+// jump out of the current vunit, to the address in regster target
 struct jmpr { Vreg64 target; RegSet args; };
+// jump out of the current vunit, to the address stored at [target]
 struct jmpm { Vptr target; RegSet args; };
+// jump out of the current vunit, to the target immediate address
 struct jmpi { TCA target; RegSet args; };
+
 struct lea { Vptr s; Vreg64 d; };
 struct leap { RIPRelativeRef s; Vreg64 d; };
 struct loadups { Vptr s; Vreg128 d; };
