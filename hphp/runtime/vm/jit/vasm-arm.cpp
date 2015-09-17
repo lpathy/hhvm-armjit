@@ -513,9 +513,17 @@ void lower(vcall& i, Vout& v) {
 }
 
 void lower(push& i, Vout& v) {
+  // todo: handle this in emitter using pre-dec addressing mode.
   auto sp = rsp(); // native stack pointer
   v << lea{sp[-8], sp};
   v << store{i.s, *sp};
+}
+
+void lower(pop& i, Vout& v) {
+  // todo: handle this in emitter using post-inc addressing mode.
+  auto sp = rsp(); // native stack pointer
+  v << load{*sp, i.d};
+  v << lea{sp[8], sp};
 }
 
 void lowerForARM(Vunit& unit) {
