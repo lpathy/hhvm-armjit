@@ -43,6 +43,11 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     set(CLANG_STDLIB "libc++")
   endif()
 
+  # Hack to work around malloc crashes on ARM
+  if(IS_AARCH64)
+    set(CMAKE_EXE_LINKER_FLAGS "-lmcheck")
+  endif()
+
   set(CMAKE_C_FLAGS_DEBUG            "-g")
   set(CMAKE_CXX_FLAGS_DEBUG          "-g")
   set(CMAKE_C_FLAGS_MINSIZEREL       "-Os -DNDEBUG")
@@ -102,6 +107,11 @@ elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
   # PPC64
   if(NOT IS_PPC64)
     set(CMAKE_CXX_OMIT_LEAF_FRAME_POINTER "-momit-leaf-frame-pointer")
+  endif()
+
+  # Hack to work around malloc crashes on ARM
+  if(IS_AARCH64)
+    set(CMAKE_EXE_LINKER_FLAGS "-lmcheck")
   endif()
 
   # No optimizations for debug builds.
