@@ -267,8 +267,8 @@ void getEffects(const Abi& abi, const Vinstr& i,
       break;
     // arm instrs
     case Vinstr::hostcall:
-      defs = (abi.all() - abi.calleeSaved) |
-             RegSet(PhysReg(arm::rHostCallReg));
+      uses = RegSet(PhysReg(arm::rHostCallReg));
+      defs = abi.all() - abi.calleeSaved;
       break;
     case Vinstr::vcall:
     case Vinstr::vinvoke:

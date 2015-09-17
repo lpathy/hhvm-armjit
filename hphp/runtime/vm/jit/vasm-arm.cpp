@@ -75,15 +75,26 @@ vixl::FPRegister D(Vreg r) {
  * If the Vptr is too fancy, this will emit instructions.
  */
 vixl::MemOperand M(vixl::MacroAssembler* a, Vptr p) {
-  assertx(p.base.isValid());
-
-  if (!p.index.isValid()) {
-    return X(p.base)[p.disp];
+  auto shift = p.scale == 2 ? 1 :
+               p.scale == 4 ? 2 :
+               p.scale == 8 ? 3 : 0;
+  if (p.base.isValid()) {
+    if (!p.index.isValid()) return X(p.base)[p.disp];
+    a->Lsl(rAsm, X(p.index), shift);
+    if (!p.disp) return X(p.base)[rAsm];
+    a->Add(rAsm, X(p.base), rAsm);
+    return rAsm[p.disp];
   }
-  a->Mov(rAsm, p.scale);
-  a->Mul(rAsm, X(p.index), rAsm);
-  return rAsm[p.disp];
+  // no base, but index,scale,disp can be valid
+  if (p.index.isValid()) {
+    a->Lsl(rAsm, X(p.index), shift);
+    return rAsm[p.disp];
+  }
+  // no base, no index. baseless mode?
+  a->Mov(rAsm, p.disp);
+  return rAsm[0]; // maybe ZR would be a better way to do this.
 }
+
 
 vixl::Condition C(ConditionCode cc) {
   return arm::convertCC(cc);
@@ -133,10 +144,6 @@ struct Vgen {
   void emit(const load& i);
   void emit(const store& i);
   void emit(const syncpoint& i);
-
-  // raw calls
-  void emit(const call& i) { a->Brk(0); }
-  void emit(const callm& i) { a->Brk(0); }
 
   // instructions
   void emit(const addli& i) {
@@ -517,8 +524,27 @@ void lower(testb& i, Vout& v) {
 
 void lower(vcall& i, Vout& v) {
   auto& dests = v.unit().tuples[i.d]; // list of dests
-  v << debugtrap{};
   for (auto d : dests) v << copy{v.cns(0), d};
+  v << debugtrap{};
+}
+
+void lower(callm& i, Vout& v) {
+  auto addr = v.makeReg();
+  v << load{i.target, addr};
+  v << callr{addr, i.args};
+}
+
+void lower(call& i, Vout& v) {
+  if (mcg->code.isValidCodeAddress(i.target)) {
+    // calling generated ARM code
+    v << callr{v.cns(i.target), i.args};
+  } else {
+    // calling host runtime code.
+    int argc = 0;
+    i.args.forEach([&](PhysReg){ argc++; });
+    v << copy{v.cns(i.target), PhysReg(arm::rHostCallReg)};
+    v << hostcall{i.args, argc, v.makePoint()};
+  }
 }
 
 void lower(push& i, Vout& v) {

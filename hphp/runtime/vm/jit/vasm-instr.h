@@ -613,7 +613,7 @@ struct hcunwind { Vpoint call; Vlabel targets[2]; };
  * ARM-specific instructions.
  */
 struct brk { uint16_t code; };
-struct hostcall { RegSet args; uint8_t argc; Vpoint syncpoint; };
+struct hostcall { RegSet args; int argc; Vpoint syncpoint; };
 struct cbcc { vixl::Condition cc; Vreg64 s; Vlabel targets[2]; };
 struct tbcc { vixl::Condition cc; unsigned bit; Vreg64 s; Vlabel targets[2]; };
 
