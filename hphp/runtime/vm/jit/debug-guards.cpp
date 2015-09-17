@@ -52,7 +52,6 @@ void addDbgGuardImpl(SrcKey sk, SrcRec* sr) {
     auto const tinfo = v.makeReg();
     auto const attached = v.makeReg();
     auto const sf = v.makeReg();
-
     auto const done = v.makeBlock();
 
     constexpr size_t dbgOff =
@@ -60,12 +59,11 @@ void addDbgGuardImpl(SrcKey sk, SrcRec* sr) {
       RequestInjectionData::debuggerReadOnlyOffset();
 
     v << ldimmq{reinterpret_cast<uintptr_t>(sk.pc()), rarg(0)};
-
     x64::emitTLSLoad(v, ThreadInfo::s_threadInfo, tinfo);
     v << loadb{tinfo[dbgOff], attached};
     v << testbi{static_cast<int8_t>(0xffu), attached, sf};
-
-    v << jcci{CC_NZ, sf, done, mcg->tx().uniqueStubs.interpHelper};
+    v << jcci{CC_NZ, sf, done,
+              mcg->tx().uniqueStubs.interpHelper, arg_regs(0)};
 
     v = done;
     v << fallthru{};

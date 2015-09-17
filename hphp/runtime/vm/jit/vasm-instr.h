@@ -161,7 +161,7 @@ struct Vunit;
   O(incqm, Inone, U(m), D(sf))\
   O(incqmlock, Inone, U(m), D(sf))\
   O(jcc, I(cc), U(sf), Dn)\
-  O(jcci, I(cc), U(sf), Dn)\
+  O(jcci, I(cc), U(sf) U(args), Dn)\
   O(jmp, Inone, Un, Dn)\
   O(jmpr, Inone, U(target) U(args), Dn)\
   O(jmpm, Inone, U(target) U(args), Dn)\
@@ -696,7 +696,8 @@ struct jmp { Vlabel target; };
 
 // if condition is true, jump out of this vunit to taken immediate address.
 // otherwise, jump within this vunit to the target block.
-struct jcci { ConditionCode cc; VregSF sf; Vlabel target; TCA taken; };
+struct jcci { ConditionCode cc; VregSF sf; Vlabel target;
+              TCA taken; RegSet args; };
 
 // jump out of the current vunit, to the address in regster target
 struct jmpr { Vreg64 target; RegSet args; };

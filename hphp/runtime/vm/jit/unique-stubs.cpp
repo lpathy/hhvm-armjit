@@ -278,7 +278,7 @@ TCA emitFunctionSurprisedOrStackOverflow(CodeBlock& cb,
       v << vcall{CppCall::direct(handlePossibleStackOverflow),
                  v.makeVcallArgs({{rvmfp()}}), v.makeTuple({})};
     });
-    v << jmpi{us.functionEnterHelper};
+    v << jmpi{us.functionEnterHelper, RegSet{}/*what args?*/};
   });
 }
 
@@ -509,7 +509,7 @@ TCA emitResumeInterpHelpers(CodeBlock& cb, UniqueStubs& us,
   us.interpHelperSyncedPC = vwrap(cb, [&] (Vout& v) {
     storeVMRegs(v);
     v << ldimmb{1, rarg(1)};
-    v << jmpi{rh.handleResume, RegSet(rarg(1))};
+    v << jmpi{rh.handleResume, RegSet(rarg(1))}; // XXX not rarg(0)?
   });
 
   return us.resumeHelperRet;
@@ -532,9 +532,9 @@ TCA emitInterpOneCFHelper(CodeBlock& cb, Op op,
     auto const next = v.makeBlock();
 
     v << testq{rret(), rret(), sf};
-    v << jcci{CC_NZ, sf, next, rh.reenterTC};
+    v << jcci{CC_NZ, sf, next, rh.reenterTC, RegSet{}/*xxx what args*/};
     v = next;
-    v << jmpi{rh.resumeHelper};
+    v << jmpi{rh.resumeHelper, RegSet{}/*xxx what args*/};
   });
 }
 

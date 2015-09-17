@@ -299,7 +299,7 @@ TCA emitEndCatchHelper(CodeBlock& cb, UniqueStubs& us) {
     auto const sf1 = v.makeReg();
 
     v << cmpqim{0, udrspo, sf1};
-    v << jcci{CC_NE, sf1, done1, debuggerReturn};
+    v << jcci{CC_NE, sf1, done1, debuggerReturn, RegSet{}};
     v = done1;
 
     // Normal end catch situation: call back to tc_unwind_resume, which returns
@@ -312,7 +312,7 @@ TCA emitEndCatchHelper(CodeBlock& cb, UniqueStubs& us) {
     auto const sf2 = v.makeReg();
 
     v << testq{reg::rax, reg::rax, sf2};
-    v << jcci{CC_Z, sf2, done2, resumeCPPUnwind};
+    v << jcci{CC_Z, sf2, done2, resumeCPPUnwind, RegSet{}};
     v = done2;
 
     // We need to do a syncForLLVMCatch(), but vmfp is already in rdx.

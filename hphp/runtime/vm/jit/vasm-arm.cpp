@@ -170,7 +170,8 @@ struct Vgen {
   void emit(jcc i);
   void emit(jmp i);
   void emit(const jmpr& i) { a->Br(X(i.target)); }
-  void emit(const jmpi& i) {
+  void emit(const jcci& i);
+  void emit(jmpi i) {
     // doesn't need to be smashable, just doing this because i'm lazy
     emitSmashableJmp(*codeBlock, i.target);
   }
@@ -413,6 +414,14 @@ void Vgen::emit(jcc i) {
   emit(jmp{i.targets[0]});
 }
 
+void Vgen::emit(const jcci& i) {
+  // if condition true, jump to another block; else jump to imm address
+  jccs.push_back({a->frontier(), i.target});
+  // doesn't need to be smashable, taget is another block in this vunit.
+  emitSmashableJcc(*codeBlock, kEndOfTargetChain, i.cc);
+  emit(jmpi{i.taken, i.args});
+}
+
 void Vgen::emit(const lea& i) {
   assertx(!i.s.index.isValid());
   assertx(i.s.scale == 1);
@@ -524,6 +533,13 @@ void lower(pop& i, Vout& v) {
   auto sp = rsp(); // native stack pointer
   v << load{*sp, i.d};
   v << lea{sp[8], sp};
+}
+
+void lower(declm& i, Vout& v) {
+  auto r1 = v.makeReg(), r2 = v.makeReg();
+  v << loadl{i.m, r1};
+  v << subli{1, r1, r2, i.sf};
+  v << storel{r2, i.m};
 }
 
 void lowerForARM(Vunit& unit) {

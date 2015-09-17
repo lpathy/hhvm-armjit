@@ -1835,7 +1835,7 @@ void processSpillExits(Vunit& unit, Vlabel label, SpillState state,
     } else /* inst.op == Vinstr::jcci */ {
       auto const& jcc_i = inst.jcci_;
       targetCode.emplace_back(free);
-      targetCode.emplace_back(jmpi{jcc_i.taken});
+      targetCode.emplace_back(jmpi{jcc_i.taken, jcc_i.args});
       cc = jcc_i.cc;
       sf = jcc_i.sf;
     }
