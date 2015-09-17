@@ -80,7 +80,7 @@ TCA emitFunctionEnterHelper(CodeBlock& cb, UniqueStubs& us) {
     v << copy2{ar, v.cns(EventHook::NormalFunc), rarg(0), rarg(1)};
 
     bool (*hook)(const ActRec*, int) = &EventHook::onFunctionCall;
-    v << call{TCA(hook)};
+    v << call{TCA(hook), rarg(0)|rarg(1)};
   });
 
   us.functionEnterHelperReturn = vwrap2(cb, [&] (Vout& v, Vout& vcold) {
