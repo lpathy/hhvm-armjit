@@ -599,7 +599,7 @@ TCA emitHandleSRHelper(CodeBlock& cb) {
     };
 
     // Pop the service ReqInfo off the stack.
-    v << addqi{reqinfo_sz, rsp(), rsp(), v.makeReg()};
+    v << lea{rsp()[reqinfo_sz], rsp()};
 
     // rvmtl was preserved by the callee, but vmsp and vmfp might've changed if
     // we interpreted anything. Reload them.

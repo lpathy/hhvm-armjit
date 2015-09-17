@@ -509,6 +509,12 @@ void lower(vcall& i, Vout& v) {
   }
 }
 
+void lower(push& i, Vout& v) {
+  auto sp = rsp(); // native stack pointer
+  v << lea{sp[-8], sp};
+  v << store{i.s, *sp};
+}
+
 void lowerForARM(Vunit& unit) {
   assertx(check(unit));
 
