@@ -220,7 +220,7 @@ size_t stub_size() {
     case Arch::X64:
       return kTotalArgs * x64::kMovLen + x64::kLeaVmSpLen;
     case Arch::ARM:
-      not_implemented();
+      return kTotalArgs * 4 + 4; // asuming mov and lea are 4-byte instrs
   }
   not_reached();
 }
