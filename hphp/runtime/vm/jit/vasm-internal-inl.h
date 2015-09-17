@@ -111,6 +111,15 @@ bool emit(Venv& env, const fallback& i);
 bool emit(Venv& env, const fallbackcc& i);
 bool emit(Venv& env, const retransopt& i);
 
+/*
+ * Arch-independent lowering routines.
+ */
+template<class Inst>
+void lower(Venv& env, const Inst& inst, Vlabel b, size_t i) {}
+
+void lower(Venv& env, vcall& inst, Vlabel b, size_t i);
+void lower(Venv& env, vinvoke& inst, Vlabel b, size_t i);
+
 ///////////////////////////////////////////////////////////////////////////////
 
 }
