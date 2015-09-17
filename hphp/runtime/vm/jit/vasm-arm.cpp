@@ -134,6 +134,10 @@ struct Vgen {
   void emit(const store& i);
   void emit(const syncpoint& i);
 
+  // raw calls
+  void emit(const call& i) { a->Brk(0); }
+  void emit(const callm& i) { a->Brk(0); }
+
   // instructions
   void emit(const addli& i) {
     a->Add(W(i.d), W(i.s1), i.s0.l(), vixl::SetFlags);
@@ -506,14 +510,6 @@ void lower(vcall& i, Vout& v) {
   auto& dests = v.unit().tuples[i.d]; // list of dests
   v << debugtrap{};
   for (auto d : dests) v << copy{v.cns(0), d};
-}
-
-void lower(call& i, Vout& v) {
-  v << debugtrap{};
-}
-
-void lower(callm& i, Vout& v) {
-  v << debugtrap{};
 }
 
 void lower(push& i, Vout& v) {
