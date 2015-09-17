@@ -171,12 +171,13 @@ struct Vgen {
     emitSmashableJmp(*codeBlock, i.target);
   }
   void emit(const lea& i);
-  void emit(const loadl& i) { a->Ldr(W(i.d), M(a, i.s)); /* assume 0-extends */ }
+  void emit(const loadl& i) { a->Ldr(W(i.d), M(a, i.s)); /* 0-extends?*/ }
   void emit(const loadzbl& i) { a->Ldrb(W(i.d), M(a, i.s)); }
   void emit(const shl& i) { a->lslv(X(i.d), X(i.s0), X(i.s1)); }
   void emit(const shrli& i) { a->Lsr(W(i.d), W(i.s1), i.s0.l()); }
   void emit(const movzbl& i) { a->Uxtb(W(i.d), W(i.s)); }
   void emit(const movzbq& i) { a->Uxtb(W(Vreg32(size_t(i.d))), W(i.s)); }
+  void emit(const movl& i) { a->Mov(W(i.d), W(i.s)); }
   void emit(const imul& i) { a->Mul(X(i.d), X(i.s0), X(i.s1)); }
   void emit(const neg& i) { a->Neg(X(i.d), X(i.s), vixl::SetFlags); }
   void emit(const not& i) { a->Mvn(X(i.d), X(i.s)); }
@@ -204,14 +205,19 @@ struct Vgen {
   void emit(const testq& i) { a->Tst(X(i.s1), X(i.s0)); }
   void emit(const testli& i) { a->Tst(W(i.s1), i.s0.l()); }
   void emit(const ud2& i) { a->Brk(1); }
+  void emit(const xorb& i) {
+    // only supports xor(x,x) for zeroing
+    assert(i.s0 == i.s1);
+    a->Eor(W(i.d), W(i.s1), W(i.s0)/*, vixl::SetFlags not supported*/);
+  }
   void emit(const xorl& i) {
-    a->Eor(W(i.d), W(i.s1), W(i.s0) /* xxx flags */);
+    a->Eor(W(i.d), W(i.s1), W(i.s0)/*, vixl::SetFlags not supported*/);
   }
   void emit(const xorq& i) {
-    a->Eor(X(i.d), X(i.s1), X(i.s0) /* xxx flags */);
+    a->Eor(X(i.d), X(i.s1), X(i.s0)/*, vixl::SetFlags not supported*/);
   }
   void emit(const xorqi& i) {
-    a->Eor(X(i.d), X(i.s1), i.s0.l() /* xxx flags */);
+    a->Eor(X(i.d), X(i.s1), i.s0.l()/*, vixl::SetFlags not supported*/);
   }
 
 private:
@@ -483,6 +489,19 @@ void lower(testbim& i, Vout& v) {
   v << testli{i.s0, scratch, i.sf};
 }
 
+Vreg32 vr32(Vreg8 r) { Vreg vr = r; return vr; }
+
+// arm doesn't have 8-bit ops like x64, just use 32-bit op.
+void lower(xorb& i, Vout& v) {
+  v << xorl{vr32(i.s0), vr32(i.s1), vr32(i.d), i.sf};
+}
+void lower(movb& i, Vout& v) {
+  v << movl{vr32(i.s), vr32(i.d)};
+}
+void lower(testb& i, Vout& v) {
+  v << testl{vr32(i.s0), vr32(i.s1), i.sf};
+}
+
 void lower(vcall& i, Vout& v) {
   auto& dests = v.unit().tuples[i.d]; // list of dests
   v << debugtrap{};
@@ -490,6 +509,10 @@ void lower(vcall& i, Vout& v) {
 }
 
 void lower(call& i, Vout& v) {
+  v << debugtrap{};
+}
+
+void lower(callm& i, Vout& v) {
   v << debugtrap{};
 }
 

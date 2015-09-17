@@ -633,8 +633,14 @@ struct andl  { Vreg32 s0, s1, d; VregSF sf; };
 struct andli { Immed s0; Vreg32 s1, d; VregSF sf; };
 struct andq  { Vreg64 s0, s1, d; VregSF sf; };
 struct andqi { Immed s0; Vreg64 s1, d; VregSF sf; };
+
+// call a function at immediate target address
 struct call { CodeAddress target; RegSet args; };
+
+// call the function whose address is stored in memory at [target]
 struct callm { Vptr target; RegSet args; };
+
+// call the function whose address is stored in register target
 struct callr { Vreg64 target; RegSet args; };
 
 /*
