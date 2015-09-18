@@ -137,7 +137,7 @@ TCA emitEndCatchHelper(CodeBlock& cb, UniqueStubs& us) {
 void emitEnterTCHelper(CodeBlock& cb, UniqueStubs& us) {
   auto const prologue = vwrap(cb, [] (Vout& v) {
     v << pop{rret()};
-    v << jmpi{*rarg(2), leave_trace_args()};
+    v << jmpm{*rarg(2), leave_trace_args()};
   });
 
   us.enterTCExit = vwrap(cb, [] (Vout& v) {
@@ -164,7 +164,7 @@ void emitEnterTCHelper(CodeBlock& cb, UniqueStubs& us) {
     v << subqi{8, rsp(), rsp(), v.makeReg()};
 
     auto const sf = v.makeReg();
-    v << test{rarg(5), rarg(5), sf};
+    v << testq{rarg(5), rarg(5), sf};
 
     ifThen(v, CC_Z, sf, [&] (Vout& v) {
       v << callr{rarg(2), leave_trace_args()};
