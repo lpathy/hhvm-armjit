@@ -229,26 +229,25 @@ void getEffects(const Abi& abi, const Vinstr& i,
     case Vinstr::callm:
     case Vinstr::callr:
       defs = abi.all() - (abi.calleeSaved | rvmfp());
-
       switch (arch()) {
-      case Arch::ARM: defs.add(PhysReg(arm::rLinkReg)); break;
-      case Arch::X64: break;
+        case Arch::ARM: defs.add(PhysReg(arm::rLinkReg)); break;
+        case Arch::X64: break;
       }
       break;
 
     case Vinstr::bindcall:
       defs = abi.all();
       switch (arch()) {
-      case Arch::ARM: break;
-      case Arch::X64: defs.remove(rvmtl()); break;
+        case Arch::ARM: break;
+        case Arch::X64: defs.remove(rvmtl()); break;
       }
       break;
     case Vinstr::contenter:
     case Vinstr::callarray:
       defs = abi.all() - RegSet(rvmfp());
       switch (arch()) {
-      case Arch::ARM: break;
-      case Arch::X64: defs.remove(rvmtl()); break;
+        case Arch::ARM: break;
+        case Arch::X64: defs.remove(rvmtl()); break;
       }
       break;
     case Vinstr::callfaststub:

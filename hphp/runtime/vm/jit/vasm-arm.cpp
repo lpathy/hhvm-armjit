@@ -167,9 +167,12 @@ struct Vgen {
   void emit(const sar& i) { a->asrv(X(i.d), X(i.s0), X(i.s1)); }
   void emit(const brk& i) { a->Brk(i.code); }
   void emit(cbcc i);
-  void emit(const callr& i) { a->Blr(X(i.target)); }
+  void emit(const blr& i) { a->Blr(X(i.target)); }
+  void emit(const bl& i) { not_implemented(); }
+  void emit(const callr& i);
   void emit(const cmpl& i) { a->Cmp(W(i.s1), W(i.s0)); }
   void emit(const cmpli& i) { a->Cmp(W(i.s1), i.s0.l()); }
+  void emit(const cmpbi& i) { a->Cmp(W(i.s1), i.s0.b()); }
   void emit(const cmpq& i) { a->Cmp(X(i.s1), X(i.s0)); }
   void emit(const cmpqi& i) { a->Cmp(X(i.s1), i.s0.l()); }
   void emit(const decq& i) { a->Sub(X(i.d), X(i.s), 1LL, vixl::SetFlags); }
@@ -185,6 +188,7 @@ struct Vgen {
   void emit(const lea& i);
   void emit(const loadl& i) { a->Ldr(W(i.d), M(a, i.s)); /* 0-extends?*/ }
   void emit(const loadzbl& i) { a->Ldrb(W(i.d), M(a, i.s)); }
+  void emit(const loadb& i) { a->Ldrb(W(i.d), M(a, i.s));/* or ldrsb? */ }
   void emit(const shl& i) { a->lslv(X(i.d), X(i.s0), X(i.s1)); }
   void emit(const shrli& i) { a->Lsr(W(i.d), W(i.s1), i.s0.l()); }
   void emit(const movzbl& i) { a->Uxtb(W(i.d), W(i.s)); }
@@ -199,10 +203,13 @@ struct Vgen {
   void emit(const orqi& i) {
     a->Orr(X(i.d), X(i.s1), i.s0.l() /* xxx flags? */);
   }
-  void emit(const ret& i) { a->Ret(); }
+  void emit(const aret& i) { a->Ret(X(i.target)); }
   void emit(const storeb& i) { a->Strb(W(i.s), M(a, i.m)); }
   void emit(const storel& i) { a->Str(W(i.s), M(a, i.m)); }
-  void emit(const setcc& i) { PhysReg r(i.d.asReg()); a->Cset(X(r), C(i.cc)); }
+  void emit(const setcc& i) {
+    PhysReg r(i.d.asReg());
+    a->Cset(X(r), C(i.cc));
+  }
   void emit(const subli& i) {
     a->Sub(W(i.d), W(i.s1), i.s0.l(), vixl::SetFlags);
   }
@@ -232,7 +239,7 @@ struct Vgen {
     a->Eor(X(i.d), X(i.s1), i.s0.l()/*, vixl::SetFlags not supported*/);
   }
 
-  void emit(const push& i);
+  void emit(push i);
   void emit(const pop& i);
 
 private:
@@ -422,6 +429,15 @@ void Vgen::emit(const jcci& i) {
   emit(jmpi{i.taken, i.args});
 }
 
+void Vgen::emit(const callr& i) {
+  // emulate x64 call - push lr on stack.
+  vixl::Label after_call;
+  a->Adr(arm::rLinkReg, &after_call); // compute pc-relative return addr
+  emit(push{PhysReg(arm::rLinkReg)});
+  a->Blr(X(i.target)); // also sets lr to return addr
+  a->bind(&after_call);
+}
+
 void Vgen::emit(const lea& i) {
   assertx(!i.s.index.isValid());
   assertx(i.s.scale == 1);
@@ -466,7 +482,7 @@ void Vgen::emit(tbcc i) {
   emit(jmp{i.targets[0]});
 }
 
-void Vgen::emit(const push& i) {
+void Vgen::emit(push i) {
   auto p = rAsm;
   auto sp = X(rsp());
   a->Sub(p, sp, 8);
@@ -518,6 +534,13 @@ void lower(testbim& i, Vout& v) {
   v << testli{i.s0, scratch, i.sf};
 }
 
+void lower(testqim& i, Vout& v) {
+  auto scratch = v.makeReg();
+  v << load{i.s1, scratch};
+  // todo support testqi natively
+  v << testq{v.cns(i.s0.l()), scratch, i.sf};
+}
+
 Vreg32 vr32(Vreg8 r) { Vreg vr = r; return vr; }
 
 // arm doesn't have 8-bit ops like x64, just use 32-bit op.
@@ -531,12 +554,6 @@ void lower(testb& i, Vout& v) {
   v << testl{vr32(i.s0), vr32(i.s1), i.sf};
 }
 
-void lower(vcall& i, Vout& v) {
-  auto& dests = v.unit().tuples[i.d]; // list of dests
-  for (auto d : dests) v << copy{v.cns(0), d};
-  v << debugtrap{};
-}
-
 void lower(callm& i, Vout& v) {
   auto addr = v.makeReg();
   v << load{i.target, addr};
@@ -545,7 +562,7 @@ void lower(callm& i, Vout& v) {
 
 void lower(call& i, Vout& v) {
   if (mcg->code.isValidCodeAddress(i.target)) {
-    // calling generated ARM code
+    // calling generated ARM code, emulating x64 call (which pushes ret)
     v << callr{v.cns(i.target), i.args};
   } else {
     // calling host runtime code.
@@ -573,6 +590,30 @@ void lower(declm& i, Vout& v) {
   v << loadl{i.m, r1};
   v << subli{1, r1, r2, i.sf};
   v << storel{r2, i.m};
+}
+
+void lower(storeli& i, Vout& v) { v << storel{v.cns(i.s.l()), i.m}; }
+void lower(storeqi& i, Vout& v) { v << store{v.cns(i.s.q()), i.m}; }
+
+void lower(cmpqim& i, Vout& v) {
+  auto r = v.makeReg();
+  v << load{i.s1, r};
+  v << cmpqi{i.s0, r, i.sf};
+}
+
+void lower(vret& i, Vout& v) {
+  // load [i.prevFP] -> d; return to [i.retAddr]
+  auto const lr = PhysReg(arm::rLinkReg);
+  v << load{i.prevFP, i.d};
+  v << load{i.retAddr, lr};
+  v << aret{lr, i.args};
+}
+
+void lower(ret& i, Vout& v) {
+  // pop => lr; aret{lr}
+  auto const lr = PhysReg(arm::rLinkReg);
+  v << pop{lr};
+  v << aret{lr, i.args};
 }
 
 void lowerForARM(Vunit& unit) {

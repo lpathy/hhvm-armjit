@@ -108,6 +108,9 @@ struct Vunit;
   O(cbcc, I(cc), U(s), Dn)\
   O(hostcall, I(argc), U(args), Dn)\
   O(tbcc, I(cc) I(bit), U(s), Dn)\
+  O(aret, Inone, U(target) U(args), Dn)\
+  O(bl, I(target), U(args), Dn)\
+  O(blr, Inone, U(target) U(args), Dn)\
   /* x64 instructions */\
   O(addli, I(s0), UH(s1,d), DH(d,s1) D(sf)) \
   O(addlm, Inone, U(s0) U(m), D(sf)) \
@@ -610,6 +613,11 @@ struct hostcall { RegSet args; int argc; };
 struct brk { uint16_t code; };
 struct cbcc { vixl::Condition cc; Vreg64 s; Vlabel targets[2]; };
 struct tbcc { vixl::Condition cc; unsigned bit; Vreg64 s; Vlabel targets[2]; };
+struct aret { Vreg64 target; RegSet args; };
+
+// like call/callr, but lr=return addr instead of pushing on stack
+struct bl { CodeAddress target; RegSet args; };
+struct blr { Vreg64 target; RegSet args; };
 
 ///////////////////////////////////////////////////////////////////////////////
 // x64.
@@ -628,13 +636,13 @@ struct andli { Immed s0; Vreg32 s1, d; VregSF sf; };
 struct andq  { Vreg64 s0, s1, d; VregSF sf; };
 struct andqi { Immed s0; Vreg64 s1, d; VregSF sf; };
 
-// call a function at immediate target address
+// call a function at immediate target address, push ret-addr
 struct call { CodeAddress target; RegSet args; };
 
-// call the function whose address is stored in memory at [target]
+// call the function whose address is stored in memory at [target], push ret
 struct callm { Vptr target; RegSet args; };
 
-// call the function whose address is stored in register target
+// call the function whose address is stored in register target, push ret
 struct callr { Vreg64 target; RegSet args; };
 
 /*

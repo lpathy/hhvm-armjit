@@ -57,6 +57,7 @@ bool isBlockEnd(const Vinstr& inst) {
     case Vinstr::vcallarray:
     case Vinstr::vinvoke:
     case Vinstr::ret:
+    case Vinstr::aret:
     case Vinstr::vret:
     case Vinstr::leavetc:
     case Vinstr::fallthru:

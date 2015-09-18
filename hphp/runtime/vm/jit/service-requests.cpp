@@ -247,11 +247,11 @@ FPInvOffset extract_spoff(TCA stub) {
 
     case Arch::ARM:
       {
-        constexpr uint32_t lea_offset_mask = 0xfff << 10;
-        constexpr uint32_t lea_instr = 0x910003b3;
-        uint32_t inst = *(uint32_t*)stub;
-        assert((inst & ~lea_offset_mask) == lea_instr);
-        auto offBytes = (inst & ~lea_instr) >> 10;
+        constexpr int32_t offset_mask = 0xfff << 10;
+        DEBUG_ONLY constexpr int32_t add_instr = 0x910003b3;
+        int32_t inst = *(int32_t*)stub;
+        assert((inst & ~offset_mask) == add_instr);
+        auto offBytes = (inst & offset_mask) >> 10;
         always_assert((offBytes % sizeof(Cell)) == 0);
         return FPInvOffset{-(offBytes / int32_t{sizeof(Cell)})};
       }
