@@ -544,10 +544,28 @@ void lower(push& i, Vout& v) {
   v << store{i.s, *sp};
 }
 
+void lower(pushm& i, Vout& v) {
+  // todo: handle this in emitter using pred-dec addressing mode.
+  auto sp = rsp(); // native stack pointer
+  auto r1 = v.makeReg();
+  v << lea{sp[-8], sp};
+  v << load{i.s, r1};
+  v << store{r1, *sp};
+}
+
 void lower(pop& i, Vout& v) {
   // todo: handle this in emitter using post-inc addressing mode.
   auto sp = rsp(); // native stack pointer
   v << load{*sp, i.d};
+  v << lea{sp[8], sp};
+}
+
+void lower(popm& i, Vout& v) {
+  // todo: handle this in emitter using post-inc addressing mode.
+  auto sp = rsp(); // native stack pointer
+  auto r1 = v.makeReg();
+  v << load{*sp, r1};
+  v << store{r1, i.d};
   v << lea{sp[8], sp};
 }
 
