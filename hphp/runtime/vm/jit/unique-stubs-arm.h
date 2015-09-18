@@ -37,7 +37,7 @@ namespace HPHP { namespace jit { namespace arm {
 inline RegSet syncForLLVMCatch(Vout& v) { return RegSet(); }
 
 inline void loadSavedRIP(Vout& v, Vreg d) {
-  v << load{*PhysReg(rLinkReg), d};
+  v << copy{PhysReg(rLinkReg), d};
 }
 
 inline void stashSavedRIP(Vout& v, Vreg fp) {
@@ -55,7 +55,7 @@ TCA emitFreeLocalsHelpers(CodeBlock& cb, UniqueStubs& us);
 TCA emitCallToExit(CodeBlock& cb);
 TCA emitEndCatchHelper(CodeBlock& cb, UniqueStubs& us);
 
-void emitEnterTCHelper(Codeblock& cb, UniqueStubs& us);
+void emitEnterTCHelper(CodeBlock& cb, UniqueStubs& us);
 
 ///////////////////////////////////////////////////////////////////////////////
 

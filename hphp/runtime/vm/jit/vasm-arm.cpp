@@ -178,7 +178,7 @@ struct Vgen {
   void emit(const decq& i) { a->Sub(X(i.d), X(i.s), 1LL, vixl::SetFlags); }
   void emit(const incq& i) { a->Add(X(i.d), X(i.s), 1LL, vixl::SetFlags); }
   void emit(jcc i);
-  void emit(jmp i);
+  void emit(const jmp& i);
   void emit(const jmpr& i) { a->Br(X(i.target)); }
   void emit(const jcci& i);
   void emit(jmpi i) {
@@ -281,6 +281,7 @@ void Vgen::patch(Venv& env) {
 
 void Vgen::emit(const bindcall& i) {
   emitSmashableCall(*codeBlock, i.stub);
+  emit(unwind{{i.targets[0], i.targets[1]}});
 }
 
 void Vgen::emit(const copy& i) {
@@ -400,7 +401,7 @@ void Vgen::emit(const unwind& i) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Vgen::emit(jmp i) {
+void Vgen::emit(const jmp& i) {
   if (next == i.target) return;
   jmps.push_back({a->frontier(), i.target});
   // B range is +/- 128MB but this uses BR
@@ -616,6 +617,10 @@ void lower(ret& i, Vout& v) {
   auto const lr = PhysReg(arm::rLinkReg);
   v << pop{lr};
   v << aret{lr, i.args};
+}
+
+void lower(leap& i, Vout& v) {
+  v << ldimmq{i.s.r.disp, i.d};
 }
 
 void lowerForARM(Vunit& unit) {

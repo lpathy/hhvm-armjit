@@ -17,6 +17,7 @@
 #include "hphp/runtime/vm/jit/unique-stubs-arm.h"
 
 #include "hphp/runtime/vm/jit/abi-arm.h"
+#include "hphp/runtime/vm/jit/abi.h"
 #include "hphp/runtime/vm/jit/align-arm.h"
 #include "hphp/runtime/vm/jit/code-gen-cf.h"
 #include "hphp/runtime/vm/jit/vasm-gen.h"
@@ -137,7 +138,7 @@ TCA emitEndCatchHelper(CodeBlock& cb, UniqueStubs& us) {
 void emitEnterTCHelper(CodeBlock& cb, UniqueStubs& us) {
   auto const prologue = vwrap(cb, [] (Vout& v) {
     v << pop{rret()};
-    v << jmpm{*rarg(2), leave_trace_args()};
+    v << jmpm{*rarg(2), leave_trace_regs()};
   });
 
   us.enterTCExit = vwrap(cb, [] (Vout& v) {
@@ -167,8 +168,8 @@ void emitEnterTCHelper(CodeBlock& cb, UniqueStubs& us) {
     v << testq{rarg(5), rarg(5), sf};
 
     ifThen(v, CC_Z, sf, [&] (Vout& v) {
-      v << callr{rarg(2), leave_trace_args()};
-      v << jmpi{us.enterTCExit, leave_trace_args()};
+      v << callr{rarg(2), leave_trace_regs()};
+      v << jmpi{us.enterTCExit, leave_trace_regs()};
     });
 
     auto const saved_rip = v.makeReg();

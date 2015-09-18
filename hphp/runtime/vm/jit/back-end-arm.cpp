@@ -135,7 +135,7 @@ struct BackEnd final : jit::BackEnd {
                    TCA end) override {
     using namespace vixl;
     Decoder dec;
-    PrintDisassembler disasm(os, indent + 4, dumpIR, color(ANSI_COLOR_BROWN));
+    PrintDisassembler disasm(os, indent + 4, true, color(ANSI_COLOR_BROWN));
     dec.AppendVisitor(&disasm);
     assertx(begin <= end);
     for (; begin < end; begin += kInstructionSize) {
