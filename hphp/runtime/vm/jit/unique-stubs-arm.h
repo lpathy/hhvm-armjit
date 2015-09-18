@@ -55,7 +55,7 @@ TCA emitFreeLocalsHelpers(CodeBlock& cb, UniqueStubs& us);
 TCA emitCallToExit(CodeBlock& cb);
 TCA emitEndCatchHelper(CodeBlock& cb, UniqueStubs& us);
 
-TCA emitEnterTCHelper(Codeblock& cb, UniqueStubs& us);
+void emitEnterTCHelper(Codeblock& cb, UniqueStubs& us);
 
 ///////////////////////////////////////////////////////////////////////////////
 

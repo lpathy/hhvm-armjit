@@ -134,7 +134,7 @@ TCA emitEndCatchHelper(CodeBlock& cb, UniqueStubs& us) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-TCA emitEnterTCHelper(CodeBlock& cb, UniqueStubs& us) {
+void emitEnterTCHelper(CodeBlock& cb, UniqueStubs& us) {
   auto const prologue = vwrap(cb, [] (Vout& v) {
     v << pop{rret()};
     v << jmpi{*rarg(2), leave_trace_args()};
