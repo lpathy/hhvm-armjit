@@ -171,7 +171,7 @@ void emitEnterTCHelper(CodeBlock& cb, UniqueStubs& us) {
       v << jmpi{us.enterTCExit, leave_trace_args()};
     });
 
-    auto const saved_rip;
+    auto const saved_rip = v.makeReg();
     v << push{v.cns(us.enterTCExit)};
     v << load{rarg(5)[AROFF(m_savedRip)], saved_rip};
     v << push{saved_rip};
