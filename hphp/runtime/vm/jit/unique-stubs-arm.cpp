@@ -111,7 +111,13 @@ TCA emitFreeLocalsHelpers(CodeBlock& cb, UniqueStubs& us) {
 
 TCA emitCallToExit(CodeBlock& cb) {
   return vwrap(cb, [&](Vout& v) {
-    v << ud2{};
+    // Sync VM regs:
+    v << store{rvmsp(), rvmtl()[rds::kVmspOff]};
+    v << store{rvmfp(), rvmtl()[rds::kVmfpOff]};
+    // Epilogue:
+    v << pop{rvmfp()};
+    v << pop{PhysReg{rLinkReg}};
+    v << ret{};
   });
 }
 

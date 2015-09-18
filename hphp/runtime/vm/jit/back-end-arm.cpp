@@ -72,8 +72,8 @@ struct BackEnd final : jit::BackEnd {
     // caller-saved; what this means in practice is that non-leaf functions push
     // it at the very beginning and pop it just before returning (as opposed to
     // just saving it around calls).
-    sim.   set_sp(sim.sp() - 16);
-    *reinterpret_cast<uint64_t*>(sim.sp()) = sim.lr();
+    sim.set_sp(sim.sp() - 16);
+    *reinterpret_cast<uint64_t*>(sim.sp() + 8) = sim.lr();
 
     return spOnEntry;
   }
