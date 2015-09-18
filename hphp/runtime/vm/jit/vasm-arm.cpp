@@ -232,6 +232,9 @@ struct Vgen {
     a->Eor(X(i.d), X(i.s1), i.s0.l()/*, vixl::SetFlags not supported*/);
   }
 
+  void emit(const push& i);
+  void emit(const pop& i);
+
 private:
   CodeBlock& frozen() { return text.frozen().code; }
 
@@ -463,6 +466,22 @@ void Vgen::emit(tbcc i) {
   emit(jmp{i.targets[0]});
 }
 
+void Vgen::emit(const push& i) {
+  auto p = rAsm;
+  auto sp = X(rsp());
+  a->Sub(p, sp, 8);
+  a->Mov(sp, p);
+  a->Str(X(i.s), p[0]);
+}
+
+void Vgen::emit(const pop& i) {
+  auto p = rAsm;
+  auto sp = X(rsp());
+  a->Mov(p, sp);
+  a->Ldr(X(i.d), p[0]);
+  a->Add(sp, p, 8);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 /*
@@ -537,36 +556,16 @@ void lower(call& i, Vout& v) {
   }
 }
 
-void lower(push& i, Vout& v) {
-  // todo: handle this in emitter using pre-dec addressing mode.
-  auto sp = rsp(); // native stack pointer
-  v << lea{sp[-8], sp};
-  v << store{i.s, *sp};
-}
-
 void lower(pushm& i, Vout& v) {
-  // todo: handle this in emitter using pred-dec addressing mode.
-  auto sp = rsp(); // native stack pointer
-  auto r1 = v.makeReg();
-  v << lea{sp[-8], sp};
-  v << load{i.s, r1};
-  v << store{r1, *sp};
-}
-
-void lower(pop& i, Vout& v) {
-  // todo: handle this in emitter using post-inc addressing mode.
-  auto sp = rsp(); // native stack pointer
-  v << load{*sp, i.d};
-  v << lea{sp[8], sp};
+  auto r = v.makeReg();
+  v << load{i.s, r};
+  v << push{r};
 }
 
 void lower(popm& i, Vout& v) {
-  // todo: handle this in emitter using post-inc addressing mode.
-  auto sp = rsp(); // native stack pointer
-  auto r1 = v.makeReg();
-  v << load{*sp, r1};
-  v << store{r1, i.d};
-  v << lea{sp[8], sp};
+  auto r = v.makeReg();
+  v << pop{r};
+  v << store{r, i.d};
 }
 
 void lower(declm& i, Vout& v) {
