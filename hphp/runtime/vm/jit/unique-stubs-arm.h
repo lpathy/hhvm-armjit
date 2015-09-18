@@ -48,10 +48,14 @@ inline void unstashSavedRIP(Vout& v, Vreg fp) {
   v << load{fp[AROFF(m_savedRip)], PhysReg(rLinkReg)};
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
 TCA emitFunctionEnterHelper(CodeBlock& cb, UniqueStubs& us);
 TCA emitFreeLocalsHelpers(CodeBlock& cb, UniqueStubs& us);
 TCA emitCallToExit(CodeBlock& cb);
 TCA emitEndCatchHelper(CodeBlock& cb, UniqueStubs& us);
+
+TCA emitEnterTCHelper(Codeblock& cb, UniqueStubs& us);
 
 ///////////////////////////////////////////////////////////////////////////////
 

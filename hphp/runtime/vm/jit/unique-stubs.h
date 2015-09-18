@@ -336,6 +336,12 @@ struct UniqueStubs {
    */
   TCA handleSRHelper;
 
+  /*
+   * lololol
+   */
+  TCA enterTCHelper;
+  TCA enterTCExit;
+
 
   /////////////////////////////////////////////////////////////////////////////
 

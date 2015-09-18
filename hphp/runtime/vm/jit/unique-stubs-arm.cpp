@@ -14,9 +14,13 @@
    +----------------------------------------------------------------------+
 */
 
+#include "hphp/runtime/vm/jit/unique-stubs-arm.h"
+
+#include "hphp/runtime/vm/jit/abi-arm.h"
 #include "hphp/runtime/vm/jit/align-arm.h"
 #include "hphp/runtime/vm/jit/code-gen-cf.h"
-#include "hphp/runtime/vm/jit/unique-stubs-arm.h"
+#include "hphp/runtime/vm/jit/vasm-gen.h"
+#include "hphp/runtime/vm/jit/vasm-instr.h"
 
 namespace HPHP { namespace jit { namespace arm {
 
@@ -127,5 +131,55 @@ TCA emitEndCatchHelper(CodeBlock& cb, UniqueStubs& us) {
     v << ud2{};
   });
 }
+
+///////////////////////////////////////////////////////////////////////////////
+
+TCA emitEnterTCHelper(CodeBlock& cb, UniqueStubs& us) {
+  auto const prologue = vwrap(cb, [] (Vout& v) {
+    v << pop{rret()};
+    v << jmpi{*rarg(2), leave_trace_args()};
+  });
+
+  us.enterTCExit = vwrap(cb, [] (Vout& v) {
+    v << store{rvmfp(), rvmtl()[rds::kVmfpOff]};
+    v << store{rvmsp(), rvmtl()[rds::kVmspOff]};
+
+    v << addqi{8, rsp(), rsp(), v.makeReg()};
+    v << pop{rvmfp()};
+    v << ret{};
+  });
+
+  us.enterTCHelper = vwrap(cb, [&] (Vout& v) {
+    // Set up frame linkage.
+    v << push{rvmfp()};
+    v << store{rsp(), *rarg(3)};
+
+    // Materialize VM registers.
+    v << copy{rarg(0), rvmsp()};
+    v << copy{rarg(1), rvmfp()};
+    v << copy{rarg(4), rvmtl()};
+
+    // Align (or unalign) the native stack (depending on whether we're calling
+    // into a prologue or into resumeHelper).
+    v << subqi{8, rsp(), rsp(), v.makeReg()};
+
+    auto const sf = v.makeReg();
+    v << test{rarg(5), rarg(5), sf};
+
+    ifThen(v, CC_Z, sf, [&] (Vout& v) {
+      v << callr{rarg(2), leave_trace_args()};
+      v << jmpi{us.enterTCExit, leave_trace_args()};
+    });
+
+    auto const saved_rip;
+    v << push{v.cns(us.enterTCExit)};
+    v << load{rarg(5)[AROFF(m_savedRip)], saved_rip};
+    v << push{saved_rip};
+    v << copy{rarg(5), rvmfp()};
+    v << call{prologue};
+  });
+}
+
+///////////////////////////////////////////////////////////////////////////////
 
 }}}
