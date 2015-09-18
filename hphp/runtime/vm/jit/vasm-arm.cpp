@@ -564,6 +564,8 @@ void lower(call& i, Vout& v) {
   if (mcg->code.isValidCodeAddress(i.target)) {
     // calling generated ARM code, emulating x64 call (which pushes ret)
     v << callr{v.cns(i.target), i.args};
+  } else if (!RuntimeOption::EvalSimulateARM) {
+    v << blr{v.cns(i.target), i.args};
   } else {
     // calling host runtime code.
     int argc = 0;

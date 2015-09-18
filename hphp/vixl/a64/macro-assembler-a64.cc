@@ -1106,16 +1106,9 @@ void MacroAssembler::AnnotateInstrumentation(const char* marker_name) {
 }
 
 void MacroAssembler::HostCall(uint8_t argc) {
-#ifndef USE_SIMULATOR
-  // On real hardware, you should be emitting proper call instructions.
-  always_assert(false);
-#else
-
   assert(argc < 7);
-
   hlt(kHostCallOpcode);
   dc32(argc);
-#endif // USE_SIMULATOR
 }
 
 }  // namespace vixl
