@@ -32,7 +32,8 @@ static void alignJmpTarget(CodeBlock& cb) {
 
 TCA emitFunctionEnterHelper(CodeBlock& cb, UniqueStubs& us) {
   // FIXME: This function is near identical to its X64 equivalent, except for
-  // the pushing and popping of the link register.
+  // the pushing and popping of the link register, and using lea to manipulate
+  // the stack pointer.
 
   alignJmpTarget(cb);
 
@@ -78,7 +79,7 @@ TCA emitFunctionEnterHelper(CodeBlock& cb, UniqueStubs& us) {
       v << pop{saved_rip};
 
       // Drop our call frame.
-      v << addqi{16, rsp(), rsp(), v.makeReg()};
+      v << lea{rsp()[16], rsp()};
 
       // Sync vmsp and return to the caller.  This unbalances the return stack
       // buffer, but if we're intercepting, we probably don't care.
@@ -87,7 +88,7 @@ TCA emitFunctionEnterHelper(CodeBlock& cb, UniqueStubs& us) {
     });
 
     // Skip past the stuff we saved for the intercept case.
-    v << addqi{16, rsp(), rsp(), v.makeReg()};
+    v << lea{rsp()[16], rsp()};
 
     // Execute a leave, returning us to the callee's prologue.
     v << pop{rvmfp()};
