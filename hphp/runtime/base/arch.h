@@ -28,7 +28,13 @@ enum class Arch { X64, ARM, };
 
 inline Arch arch() {
   if (RuntimeOption::EvalSimulateARM) return Arch::ARM;
+#if defined(__aarch64__)
+  return Arch::ARM;
+#elif defined(__x86_64__)
   return Arch::X64;
+#else
+  cpp_error("Unknown Architecutre");
+#endif
 }
 
 /*
