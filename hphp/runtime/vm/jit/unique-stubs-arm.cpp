@@ -92,8 +92,7 @@ TCA emitFunctionEnterHelper(CodeBlock& cb, UniqueStubs& us) {
 
     // Execute a leave, returning us to the callee's prologue.
     v << pop{rvmfp()};
-    v << pop{PhysReg{rLinkReg}};
-    v << ret{};
+    v << ret{}; // pop{lr};ret{lr}
   });
 
   return start;
@@ -116,8 +115,7 @@ TCA emitCallToExit(CodeBlock& cb) {
     v << store{rvmfp(), rvmtl()[rds::kVmfpOff]};
     // Epilogue:
     v << pop{rvmfp()};
-    v << pop{PhysReg{rLinkReg}};
-    v << ret{};
+    v << ret{}; // pop{lr};ret{lr}
   });
 }
 
