@@ -83,18 +83,16 @@ struct BackEnd final : jit::BackEnd {
     // This is a pseudo-copy of the logic in enterTCHelper: it sets up the
     // simulator's registers and stack, runs the translation, and gets the
     // necessary information out of the registers when it's done.
-    vixl::PrintDisassembler disasm(std::cout);
     vixl::Decoder decoder;
-    if (getenv("ARM_DISASM")) {
-      decoder.AppendVisitor(&disasm);
-    }
     vixl::Simulator sim(&decoder, std::cout);
+    if (getenv("ARM_DISASM")) {
+      sim.set_disasm_trace(true);
+    }
     SCOPE_EXIT {
       Stats::inc(Stats::vixl_SimulatedInstr, sim.instr_count());
       Stats::inc(Stats::vixl_SimulatedLoad, sim.load_count());
       Stats::inc(Stats::vixl_SimulatedStore, sim.store_count());
     };
-
     sim.set_exception_hook(arm::simulatorExceptionHook);
 
     g_context->m_activeSims.push_back(&sim);
