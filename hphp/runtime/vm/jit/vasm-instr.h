@@ -171,6 +171,7 @@ struct Vunit;
   O(loadups, Inone, U(s), D(d))\
   O(loadtqb, Inone, U(s), D(d))\
   O(loadb, Inone, U(s), D(d))\
+  O(loadw, Inone, U(s), D(d))\
   O(loadl, Inone, U(s), D(d))\
   O(loadqp, I(s), Un, D(d))\
   O(loadsd, Inone, U(s), D(d))\
@@ -713,6 +714,7 @@ struct leap { RIPRelativeRef s; Vreg64 d; };
 struct loadups { Vptr s; Vreg128 d; };
 struct loadtqb { Vptr s; Vreg8 d; };
 struct loadb { Vptr s; Vreg8 d; };
+struct loadw { Vptr s; Vreg16 d; };
 struct loadl { Vptr s; Vreg32 d; };
 struct loadqp { RIPRelativeRef s; Vreg64 d; };
 struct loadsd { Vptr s; VregDbl d; };

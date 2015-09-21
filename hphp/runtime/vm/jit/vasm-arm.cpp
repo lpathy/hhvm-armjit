@@ -55,6 +55,11 @@ vixl::Register W(Vreg32 r) {
   return x2a(pr).W();
 }
 
+vixl::Register W(Vreg16 r) {
+  PhysReg pr(r.asReg());
+  return x2a(pr).W();
+}
+
 vixl::Register W(Vreg8 r) {
   PhysReg pr(r.asReg());
   return x2a(pr).W();
@@ -185,10 +190,12 @@ struct Vgen {
     // doesn't need to be smashable, just doing this because i'm lazy
     emitSmashableJmp(*codeBlock, i.target);
   }
+  void emit(const landingpad& i) {}
   void emit(const lea& i);
   void emit(const loadl& i) { a->Ldr(W(i.d), M(a, i.s)); /* 0-extends?*/ }
   void emit(const loadzbl& i) { a->Ldrb(W(i.d), M(a, i.s)); }
   void emit(const loadb& i) { a->Ldrb(W(i.d), M(a, i.s));/* or ldrsb? */ }
+  void emit(const loadw& i) { a->Ldrh(W(i.d), M(a, i.s));/* or ldrsh? */ }
   void emit(const shl& i) { a->lslv(X(i.d), X(i.s0), X(i.s1)); }
   void emit(const shrli& i) { a->Lsr(W(i.d), W(i.s1), i.s0.l()); }
   void emit(const movzbl& i) { a->Uxtb(W(i.d), W(i.s)); }
@@ -196,6 +203,7 @@ struct Vgen {
   void emit(const movl& i) { a->Mov(W(i.d), W(i.s)); }
   void emit(const imul& i) { a->Mul(X(i.d), X(i.s0), X(i.s1)); }
   void emit(const neg& i) { a->Neg(X(i.d), X(i.s), vixl::SetFlags); }
+  void emit(const nop& i) { a->Nop(); }
   void emit(const not& i) { a->Mvn(X(i.d), X(i.s)); }
   void emit(const orq& i) {
     a->Orr(X(i.d), X(i.s1), X(i.s0) /* xxx flags? */);
@@ -205,6 +213,7 @@ struct Vgen {
   }
   void emit(const aret& i) { a->Ret(X(i.target)); }
   void emit(const storeb& i) { a->Strb(W(i.s), M(a, i.m)); }
+  void emit(const storew& i) { a->Strh(W(i.s), M(a, i.m)); }
   void emit(const storel& i) { a->Str(W(i.s), M(a, i.m)); }
   void emit(const setcc& i) {
     PhysReg r(i.d.asReg());
@@ -223,6 +232,7 @@ struct Vgen {
   void emit(const testl& i) { a->Tst(W(i.s1), W(i.s0)); }
   void emit(const testq& i) { a->Tst(X(i.s1), X(i.s0)); }
   void emit(const testli& i) { a->Tst(W(i.s1), i.s0.l()); }
+  void emit(const testqi& i) { a->Tst(X(i.s1), i.s0.l()); }
   void emit(const ud2& i) { a->Brk(1); }
   void emit(const xorb& i) {
     // only supports xor(x,x) for zeroing
@@ -511,6 +521,28 @@ void lower(Inst& i, Vout& v) {
   v << i;
 }
 
+void lower(load& i, Vout& v) {
+  // You cannot load/store into SP directly, so use a temp register.
+  if (i.d == rsp()) {
+    auto scratch = v.makeReg();
+    v << load{i.s, scratch};
+    v << copy{scratch, i.d};
+  } else {
+    v << i;
+  }
+}
+
+void lower(store& i, Vout& v) {
+  // You cannot load/store into SP directly, so use a temp register.
+  if (i.s == rsp()) {
+    auto scratch = v.makeReg();
+    v << copy{i.s, scratch};
+    v << store{scratch, i.d};
+  } else {
+    v << i;
+  }
+}
+
 void lower(cmpbim& i, Vout& v) {
   auto scratch = v.makeReg();
   v << loadzbl{i.s1, scratch};
@@ -566,9 +598,10 @@ void lower(call& i, Vout& v) {
     // calling generated ARM code, emulating x64 call (which pushes ret)
     v << callr{v.cns(i.target), i.args};
   } else if (!RuntimeOption::EvalSimulateARM) {
+    // calling native host code. Use standard ARM calling conventions.
     v << blr{v.cns(i.target), i.args};
   } else {
-    // calling host runtime code.
+    // calling host runtime code from simulator.
     int argc = 0;
     i.args.forEach([&](PhysReg){ argc++; });
     v << copy{v.cns(i.target), PhysReg(arm::rHostCallReg)};
@@ -595,6 +628,34 @@ void lower(declm& i, Vout& v) {
   v << storel{r2, i.m};
 }
 
+void lower(decqm& i, Vout& v) {
+  auto r1 = v.makeReg(), r2 = v.makeReg();
+  v << load{i.m, r1};
+  v << subqi{1, r1, r2, i.sf};
+  v << store{r2, i.m};
+}
+
+void lower(incwm& i, Vout& v) {
+  auto r1 = v.makeReg(), r2 = v.makeReg();
+  v << loadw{i.m, r1};
+  v << addli{1, r1, r2, i.sf};
+  v << storew{r2, i.m};
+}
+
+void lower(inclm& i, Vout& v) {
+  auto r1 = v.makeReg(), r2 = v.makeReg();
+  v << loadl{i.m, r1};
+  v << addli{1, r1, r2, i.sf};
+  v << storel{r2, i.m};
+}
+
+void lower(incqm& i, Vout& v) {
+  auto r1 = v.makeReg(), r2 = v.makeReg();
+  v << load{i.m, r1};
+  v << addqi{1, r1, r2, i.sf};
+  v << store{r2, i.m};
+}
+
 void lower(storeli& i, Vout& v) { v << storel{v.cns(i.s.l()), i.m}; }
 void lower(storeqi& i, Vout& v) { v << store{v.cns(i.s.q()), i.m}; }
 
@@ -617,6 +678,12 @@ void lower(ret& i, Vout& v) {
   auto const lr = PhysReg(arm::rLinkReg);
   v << pop{lr};
   v << aret{lr, i.args};
+}
+
+void lower(jmpm&i, Vout& v) {
+  auto scratch = v.makeReg();
+  v << load{i.target, scratch};
+  v << jmpr{scratch, i.args};
 }
 
 void lower(leap& i, Vout& v) {
