@@ -16,6 +16,7 @@
 #ifndef incl_HPHP_RUNTIME_VM_NATIVE_H
 #define incl_HPHP_RUNTIME_VM_NATIVE_H
 
+#include "hphp/runtime/base/arch.h"
 #include "hphp/runtime/base/type-string.h"
 #include "hphp/runtime/base/typed-value.h"
 
@@ -155,26 +156,20 @@ const int kMaxBuiltinArgs = 32;
 constexpr int kMaxFCallBuiltinArgsARM = 5;
 
 inline int maxFCallBuiltinArgs() {
-#ifdef __AARCH64EL__
-  return kMaxFCallBuiltinArgsARM;
-#else
-  if (UNLIKELY(RuntimeOption::EvalSimulateARM)) {
-    return kMaxFCallBuiltinArgsARM;
+  switch (arch()) {
+    case Arch::X64: return kMaxBuiltinArgs;
+    case Arch::ARM: return kMaxFCallBuiltinArgsARM;
+    default: not_reached();
   }
-  return kMaxBuiltinArgs;
-#endif
 }
 
 // t#3982283 - Our ARM code gen doesn't support FP args/returns yet.
 inline bool allowFCallBuiltinDoubles() {
-#ifdef __AARCH64EL__
-  return false;
-#else
-  if (UNLIKELY(RuntimeOption::EvalSimulateARM)) {
-    return false;
+  switch (arch()) {
+    case Arch::X64: return true;
+    case Arch::ARM: return false;
+    default: not_reached();
   }
-  return true;
-#endif
 }
 
 enum Attr {

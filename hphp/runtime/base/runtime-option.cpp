@@ -408,7 +408,11 @@ static inline std::string regionSelectorDefault() {
 
 static inline bool pgoDefault() {
   // TODO(3496304)
-  return !RuntimeOption::EvalSimulateARM;
+#if defined(__APPLE__) || defined(__CYGWIN__) || defined(_MSC_VER) || defined(__aarch64__)
+  return false;
+#else
+  return true;
+#endif
 }
 
 static inline uint64_t pgoThresholdDefault() {
@@ -440,7 +444,7 @@ static inline bool hhirRelaxGuardsDefault() {
 }
 
 static inline bool evalJitDefault() {
-#if defined(__APPLE__) || defined(__CYGWIN__) || defined(_MSC_VER) || defined(__aarch64__)
+#if defined(__APPLE__) || defined(__CYGWIN__) || defined(_MSC_VER)
   return false;
 #else
   return true;
@@ -457,7 +461,11 @@ static inline bool simulateARMDefault() {
 
 static inline bool jitPseudomainDefault() {
   // TODO(#4238120)
-  return !RuntimeOption::EvalSimulateARM;
+#if defined(__APPLE__) || defined(__CYGWIN__) || defined(_MSC_VER)
+  return false;
+#else
+  return true;
+#endif
 }
 
 /*

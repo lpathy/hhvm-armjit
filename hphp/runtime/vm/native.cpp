@@ -27,14 +27,11 @@ ConstantMap s_constant_map;
 ClassConstantMapMap s_class_constant_map;
 
 static size_t numGPRegArgs() {
-#ifdef __AARCH64EL__
-  return 8; // r0-r7
-#else // amd64
-  if (UNLIKELY(RuntimeOption::EvalSimulateARM)) {
-    return 8;
+  switch (arch()) {
+    case Arch::X64: return 8;
+    case Arch::ARM: return 6;
+    default: not_reached();
   }
-  return 6; // rdi, rsi, rdx, rcx, r8, r9
-#endif
 }
 
 // Note: This number should generally not be modified
