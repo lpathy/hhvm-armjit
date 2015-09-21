@@ -28,6 +28,8 @@
 
 namespace HPHP { namespace jit { namespace arm {
 
+constexpr const std::size_t kEntireSmashableCallLen = smashableCallLen() + 12;
+
 ///////////////////////////////////////////////////////////////////////////////
 
 /*
@@ -144,7 +146,7 @@ void smashCmpq(TCA inst, uint32_t target) {
 }
 
 void smashCall(TCA inst, TCA target) {
-  smashInstr(inst, target, smashableCallLen());
+  smashInstr(inst, target, kEntireSmashableCallLen);
 }
 
 void smashJmp(TCA inst, TCA target) {
@@ -152,6 +154,7 @@ void smashJmp(TCA inst, TCA target) {
 }
 
 void smashJcc(TCA inst, TCA target, ConditionCode cc) {
+  // TODO: How to modify target and condition code atomically?
   assertx(cc == CC_None);
   smashInstr(inst, target, smashableJccLen());
 }
@@ -174,10 +177,12 @@ TCA smashableCallTarget(TCA call) {
   Instruction* blr = Instruction::Cast(call + 4);
   if (blr->Bits(31, 10) != 0x358FC0 || blr->Bits(4, 0) != 0) return nullptr;
 
-  uintptr_t dest = reinterpret_cast<uintptr_t>(blr + 8);
-  assertx((dest & 7) == 0);
+  Instruction* b = Instruction::Cast(call + 8);
+  if (b->Bits(31, 26) != 0x5) return nullptr;
 
-  return *reinterpret_cast<TCA*>(dest);
+  TCA tca = *reinterpret_cast<TCA*>(call + 12);
+  assertx(((uintptr_t)tca & 7) == 0);
+  return tca;
 }
 
 TCA smashableJmpTarget(TCA jmp) {
@@ -211,7 +216,17 @@ TCA smashableJccTarget(TCA jmp) {
 }
 
 ConditionCode smashableJccCond(TCA inst) {
-  not_implemented();
+  using namespace vixl;
+  struct JccDecoder : public Decoder {
+    void VisitConditionalBranch(Instruction* inst) override {
+      cc = (Condition)inst->ConditionBranch();
+    }
+    folly::Optional<Condition> cc;
+  };
+  JccDecoder decoder;
+  decoder.Decode(Instruction::Cast(inst));
+  always_assert(decoder.cc);
+  return convertCC(*decoder.cc);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -413,9 +413,9 @@ void Vgen::emit(const unwind& i) {
 
 void Vgen::emit(const jmp& i) {
   if (next == i.target) return;
-  jmps.push_back({a->frontier(), i.target});
   // B range is +/- 128MB but this uses BR
-  emitSmashableJmp(*codeBlock, kEndOfTargetChain);
+  auto const start = emitSmashableJmp(*codeBlock, kEndOfTargetChain);
+  jmps.push_back({start, i.target});
 }
 
 void Vgen::emit(jcc i) {
@@ -425,18 +425,18 @@ void Vgen::emit(jcc i) {
       // the taken branch is the fall-through block, invert the branch.
       i = jcc{ccNegate(i.cc), i.sf, {i.targets[1], i.targets[0]}};
     }
-    jccs.push_back({a->frontier(), i.targets[1]});
     // B.cond range is +/- 1MB but this uses BR
-    emitSmashableJcc(*codeBlock, kEndOfTargetChain, i.cc);
+    auto const start = emitSmashableJcc(*codeBlock, kEndOfTargetChain, i.cc);
+    jccs.push_back({start, i.targets[1]});
   }
   emit(jmp{i.targets[0]});
 }
 
 void Vgen::emit(const jcci& i) {
   // if condition true, jump to another block; else jump to imm address
-  jccs.push_back({a->frontier(), i.target});
-  // doesn't need to be smashable, taget is another block in this vunit.
-  emitSmashableJcc(*codeBlock, kEndOfTargetChain, i.cc);
+  // doesn't need to be smashable, target is another block in this vunit.
+  auto const start = emitSmashableJcc(*codeBlock, kEndOfTargetChain, i.cc);
+  jccs.push_back({start, i.target});
   emit(jmpi{i.taken, i.args});
 }
 

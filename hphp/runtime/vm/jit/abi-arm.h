@@ -113,6 +113,26 @@ inline vixl::Condition convertCC(jit::ConditionCode cc) {
   return mapping[cc];
 }
 
+inline jit::ConditionCode convertCC(vixl::Condition cc) {
+  switch (cc) {
+    case vixl::eq: return jit::CC_E;
+    case vixl::ne: return jit::CC_NE;
+    case vixl::hs: return jit::CC_AE;
+    case vixl::lo: return jit::CC_B;
+    case vixl::mi: return jit::CC_NS;
+    case vixl::pl: return jit::CC_S;
+    case vixl::vs: return jit::CC_O;
+    case vixl::vc: return jit::CC_NO;
+    case vixl::hi: return jit::CC_A;
+    case vixl::ls: return jit::CC_NA;
+    case vixl::ge: return jit::CC_GE;
+    case vixl::lt: return jit::CC_L;
+    case vixl::gt: return jit::CC_G;
+    case vixl::le: return jit::CC_LE;
+    default: not_reached();
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 inline vixl::Register svcReqArgReg(unsigned index) {
