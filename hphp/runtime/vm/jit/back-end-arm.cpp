@@ -46,76 +46,67 @@ struct BackEnd final : jit::BackEnd {
   BackEnd() {}
   ~BackEnd() {}
 
+#if defined(__aarch64__)
 #define CALLEE_SAVED_BARRIER() \
   asm volatile("" : : : "x19", "x20", "x21", "x22", "x23", "x24", "x25", \
                "x26", "x27", "x28")
+#else
+#define CALLEE_SAVED_BARRIER()
+#endif
 
- private:
-  /*
-   * A partial equivalent of enterTCHelper, used to set up the ARM simulator.
-   */
-  uintptr_t setupSimRegsAndStack(vixl::Simulator& sim,
-                                 ActRec* saved_rStashedAr) {
-    sim.   set_xreg(arm::rGContextReg.code(), g_context.getNoCheck());
-
-    auto& vmRegs = vmRegsUnsafe();
-    sim.   set_xreg(x2a(rvmfp()).code(), vmRegs.fp);
-    sim.   set_xreg(x2a(rvmsp()).code(), vmRegs.stack.top());
-    sim.   set_xreg(x2a(rvmtl()).code(), rds::tl_base);
-
-    // Leave space for register spilling and MInstrState.
-    assertx(sim.is_on_stack(reinterpret_cast<void*>(sim.sp())));
-
-    auto spOnEntry = sim.sp();
-
-    // Push the link register onto the stack. The link register is technically
-    // caller-saved; what this means in practice is that non-leaf functions push
-    // it at the very beginning and pop it just before returning (as opposed to
-    // just saving it around calls).
-    sim.set_sp(sim.sp() - 16);
-    *reinterpret_cast<uint64_t*>(sim.sp() + 8) = sim.lr();
-
-    return spOnEntry;
-  }
-
- public:
   void enterTCHelper(TCA start, ActRec* stashedAR) override {
-    // This is a pseudo-copy of the logic in enterTCHelper: it sets up the
-    // simulator's registers and stack, runs the translation, and gets the
-    // necessary information out of the registers when it's done.
-    vixl::Decoder decoder;
-    vixl::Simulator sim(&decoder, std::cout);
-    if (getenv("ARM_DISASM")) {
-      sim.set_disasm_trace(true);
+    if (RuntimeOption::EvalSimulateARM) {
+      vixl::Decoder decoder;
+      vixl::Simulator sim(&decoder, std::cout);
+      if (getenv("ARM_DISASM")) {
+        sim.set_disasm_trace(true);
+      }
+      SCOPE_EXIT {
+        Stats::inc(Stats::vixl_SimulatedInstr, sim.instr_count());
+        Stats::inc(Stats::vixl_SimulatedLoad, sim.load_count());
+        Stats::inc(Stats::vixl_SimulatedStore, sim.store_count());
+      };
+      sim.set_exception_hook(arm::simulatorExceptionHook);
+
+      g_context->m_activeSims.push_back(&sim);
+      SCOPE_EXIT { g_context->m_activeSims.pop_back(); };
+
+      auto& regs = vmRegsUnsafe();
+      sim.set_xreg(x2a(rarg(0)).code(), regs.stack.top());
+      sim.set_xreg(x2a(rarg(1)).code(), regs.fp);
+      sim.set_xreg(x2a(rarg(2)).code(), start);
+      sim.set_xreg(x2a(rarg(3)).code(), vmFirstAR());
+      sim.set_xreg(x2a(rarg(4)).code(), rds::tl_base);
+      sim.set_xreg(x2a(rarg(5)).code(), stashedAR);
+
+      DEBUG_ONLY auto spOnEntry = sim.sp();
+
+      std::cout.flush();
+      sim.RunFrom(
+        vixl::Instruction::Cast(
+          mcg->tx().uniqueStubs.enterTCHelper
+        )
+      );
+      std::cout.flush();
+
+      assertx(sim.sp() == spOnEntry);
+    } else {
+      // We have to force C++ to spill anything that might be in a callee-saved
+      // register. enterTCHelper does not save them.
+      CALLEE_SAVED_BARRIER();
+      auto& regs = vmRegsUnsafe();
+      reinterpret_cast<void(*)(Cell*, ActRec*, TCA, ActRec*, void*, ActRec*)>(
+        mcg->tx().uniqueStubs.enterTCHelper
+      )(
+        regs.stack.top(),
+        regs.fp,
+        start,
+        vmFirstAR(),
+        rds::tl_base,
+        stashedAR
+      );
+      CALLEE_SAVED_BARRIER();
     }
-    SCOPE_EXIT {
-      Stats::inc(Stats::vixl_SimulatedInstr, sim.instr_count());
-      Stats::inc(Stats::vixl_SimulatedLoad, sim.load_count());
-      Stats::inc(Stats::vixl_SimulatedStore, sim.store_count());
-    };
-    sim.set_exception_hook(arm::simulatorExceptionHook);
-
-    g_context->m_activeSims.push_back(&sim);
-    SCOPE_EXIT { g_context->m_activeSims.pop_back(); };
-
-    DEBUG_ONLY auto spOnEntry = setupSimRegsAndStack(sim, stashedAR);
-
-    // The handshake is different when entering at a func prologue. The code
-    // we're jumping to expects to find a return address in x30, and a saved
-    // return address on the stack.
-    if (stashedAR) {
-      // Put the call's return address in the link register.
-      sim.set_lr(stashedAR->m_savedRip);
-    }
-
-    std::cout.flush();
-    sim.RunFrom(vixl::Instruction::Cast(start));
-    std::cout.flush();
-
-    assertx(sim.sp() == spOnEntry);
-
-    vmRegsUnsafe().fp = (ActRec*)sim.xreg(x2a(rvmfp()).code());
-    vmRegsUnsafe().stack.top() = (Cell*)sim.xreg(x2a(rvmsp()).code());
   }
 
   void streamPhysReg(std::ostream& os, PhysReg reg) override {

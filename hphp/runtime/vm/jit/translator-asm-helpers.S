@@ -23,9 +23,9 @@
 #if defined(__x86_64__)
   .byte 0
   ETCH_ALIGN16
-  ETCH_SECTION(enterTCHelper)
-  .globl ETCH_NAME(enterTCHelper)
-ETCH_NAME(enterTCHelper):
+  ETCH_SECTION(enterTCHelperX64)
+  .globl ETCH_NAME(enterTCHelperX64)
+ETCH_NAME(enterTCHelperX64):
   // Prologue
   CFI(startproc)             // amongst other things, cfa reg is now rsp, and offset is 8
 
@@ -60,11 +60,11 @@ ETCH_NAME(enterTCHelper):
    * keeps the RSB balanced.
    */
   test ETCH_ARG6, ETCH_ARG6
-  jz ETCH_LABEL(enterTCHelper$callTC)
-  push ETCH_NAME_REL(enterTCExit)
+  jz ETCH_LABEL(enterTCHelperX64$callTC)
+  push ETCH_NAME_REL(enterTCExitX64)
   push 0x8(ETCH_ARG6)
   mov ETCH_ARG6, %rbp
-  call ETCH_LABEL(enterTCHelper$prologue)
+  call ETCH_LABEL(enterTCHelperX64$prologue)
 
   /*
    * The translated code we are about to enter does not follow the
@@ -73,15 +73,15 @@ ETCH_NAME(enterTCHelper):
    * that the return address being pushed will make the native stack
    * 16-byte aligned.
    */
-ETCH_LABEL(enterTCHelper$callTC):
+ETCH_LABEL(enterTCHelperX64$callTC):
   call *ETCH_ARG3
 
   /*
-   * enterTCExit is never called directly; this exists to give the jit
+   * enterTCExitX64 is never called directly; this exists to give the jit
    * access to the address of the expected return address while in the TC.
    */
-  .globl ETCH_NAME(enterTCExit)
-ETCH_NAME(enterTCExit):
+  .globl ETCH_NAME(enterTCExitX64)
+ETCH_NAME(enterTCExitX64):
   /*
    * Eager vm-reg save. Must match values in rds-header.h
    */
@@ -96,19 +96,18 @@ ETCH_NAME(enterTCExit):
   CFI2(adjust_cfa_offset, -8)
   ret
 
-ETCH_LABEL(enterTCHelper$prologue):
+ETCH_LABEL(enterTCHelperX64$prologue):
   pop %rax
   jmp *ETCH_ARG3
 
   CFI(endproc)
-  ETCH_SIZE(enterTCHelper)
+  ETCH_SIZE(enterTCHelperX64)
 
 ///////////////////////////////////////////////////////////////////////////////
 #elif defined(__aarch64__)
-  .globl enterTCHelper
-enterTCHelper:
-  .globl enterTCExit
-enterTCExit:
-  brk 0
-
+        .globl enterTCHelperX64
+enterTCHelperX64:
+        .globl enterTCExitX64
+enterTCExitX64:
+        brk 0
 #endif

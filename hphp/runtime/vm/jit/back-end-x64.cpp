@@ -1,3 +1,4 @@
+
 /*
    +----------------------------------------------------------------------+
    | HipHop for PHP                                                       |
@@ -48,13 +49,6 @@ namespace HPHP { namespace jit {
 
 using namespace reg;
 
-extern "C" void enterTCHelper(Cell* vm_sp,
-                              ActRec* vm_fp,
-                              TCA start,
-                              ActRec* firstAR,
-                              void* targetCacheBase,
-                              ActRec* stashedAR);
-
 namespace x64 {
 
 TRACE_SET_MOD(hhir);
@@ -76,12 +70,11 @@ struct BackEnd final : jit::BackEnd {
   // Unfortunately, we have no way to tell MSVC to do this, so we'll
   // probably have to use a pair of assembly stubs to manage this.
   #define CALLEE_SAVED_BARRIER() always_assert(false);
-#elif defined(__aarch64__)
-  #define CALLEE_SAVED_BARRIER()                                    \
-      asm volatile("" : : : "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28");
-#else
+#elif defined(__x86_64__)
   #define CALLEE_SAVED_BARRIER()                                    \
       asm volatile("" : : : "rbx", "r12", "r13", "r14", "r15");
+#else
+  #define CALLEE_SAVED_BARRIER()
 #endif
 
   /*
@@ -98,8 +91,16 @@ struct BackEnd final : jit::BackEnd {
     // register (aside from rbp). enterTCHelper does not save them.
     CALLEE_SAVED_BARRIER();
     auto& regs = vmRegsUnsafe();
-    jit::enterTCHelper(regs.stack.top(), regs.fp, start,
-                       vmFirstAR(), rds::tl_base, stashedAR);
+    reinterpret_cast<void(*)(Cell*, ActRec*, TCA, ActRec*, void*, ActRec*)>(
+      mcg->tx().uniqueStubs.enterTCHelper
+    )(
+      regs.stack.top(),
+      regs.fp,
+      start,
+      vmFirstAR(),
+      rds::tl_base,
+      stashedAR
+    );
     CALLEE_SAVED_BARRIER();
   }
 

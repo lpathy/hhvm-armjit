@@ -81,8 +81,9 @@ void alignNativeStack(Vout& v, GenFunc gen) {
 
 TCA emitFunctionEnterHelper(CodeBlock& cb, UniqueStubs& us);
 TCA emitFreeLocalsHelpers(CodeBlock& cb, UniqueStubs& us);
-TCA emitCallToExit(CodeBlock& cb);
 TCA emitEndCatchHelper(CodeBlock& cb, UniqueStubs& us);
+
+void emitEnterTCHelper(CodeBlock& cb, UniqueStubs& us);
 
 ///////////////////////////////////////////////////////////////////////////////
 

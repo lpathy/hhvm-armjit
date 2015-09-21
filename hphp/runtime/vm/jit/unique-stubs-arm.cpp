@@ -16,6 +16,7 @@
 
 #include "hphp/runtime/vm/jit/unique-stubs-arm.h"
 
+#include "hphp/runtime/vm/jit/abi.h"
 #include "hphp/runtime/vm/jit/abi-arm.h"
 #include "hphp/runtime/vm/jit/abi.h"
 #include "hphp/runtime/vm/jit/align-arm.h"
@@ -113,17 +114,6 @@ TCA emitFreeLocalsHelpers(CodeBlock& cb, UniqueStubs& us) {
   return release;
 }
 
-TCA emitCallToExit(CodeBlock& cb) {
-  return vwrap(cb, [&](Vout& v) {
-    // Sync VM regs:
-    v << store{rvmsp(), rvmtl()[rds::kVmspOff]};
-    v << store{rvmfp(), rvmtl()[rds::kVmfpOff]};
-    // Epilogue:
-    v << pop{rvmfp()};
-    v << ret{}; // pop{lr};ret{lr}
-  });
-}
-
 TCA emitEndCatchHelper(CodeBlock& cb, UniqueStubs& us) {
   us.endCatchHelperPast = vwrap(cb, [&](Vout& v) {
     v << ud2{};
@@ -141,17 +131,21 @@ void emitEnterTCHelper(CodeBlock& cb, UniqueStubs& us) {
     v << jmpm{*rarg(2), leave_trace_regs()};
   });
 
-  us.enterTCExit = vwrap(cb, [] (Vout& v) {
+  us.callToExit = vwrap(cb, [] (Vout& v) {
+    // Sync VM registers.
     v << store{rvmfp(), rvmtl()[rds::kVmfpOff]};
     v << store{rvmsp(), rvmtl()[rds::kVmspOff]};
-
-    v << addqi{8, rsp(), rsp(), v.makeReg()};
+    // Realign the stack
+    v << lea{rsp()[8], rsp()};
+    // Epilogue
     v << pop{rvmfp()};
     v << ret{};
   });
 
   us.enterTCHelper = vwrap(cb, [&] (Vout& v) {
-    // Set up frame linkage.
+    // Set up frame linkage. Since this is called from native code, the return
+    // address is not pushed onto the stack already, so we must do it.
+    v << push{PhysReg(rLinkReg)};
     v << push{rvmfp()};
     v << store{rsp(), *rarg(3)};
 
@@ -162,20 +156,18 @@ void emitEnterTCHelper(CodeBlock& cb, UniqueStubs& us) {
 
     // Align (or unalign) the native stack (depending on whether we're calling
     // into a prologue or into resumeHelper).
-    v << subqi{8, rsp(), rsp(), v.makeReg()};
+    v << lea{rsp()[-8], rsp()};
 
     auto const sf = v.makeReg();
     v << testq{rarg(5), rarg(5), sf};
 
     ifThen(v, CC_Z, sf, [&] (Vout& v) {
-      v << callr{rarg(2), leave_trace_regs()};
-      v << jmpi{us.enterTCExit, leave_trace_regs()};
+      v << jmpr{rarg(2), leave_trace_regs()};
+      //v << jmpi{us.callToExit, leave_trace_regs()};
     });
 
-    auto const saved_rip = v.makeReg();
-    v << push{v.cns(us.enterTCExit)};
-    v << load{rarg(5)[AROFF(m_savedRip)], saved_rip};
-    v << push{saved_rip};
+    v << push{v.cns(us.callToExit)};
+    v << pushm{rarg(5)[AROFF(m_savedRip)]};
     v << copy{rarg(5), rvmfp()};
     v << call{prologue};
   });

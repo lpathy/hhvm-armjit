@@ -162,12 +162,12 @@ TCA emitFreeLocalsHelpers(CodeBlock& cb, UniqueStubs& us) {
   return ARCH_SWITCH_CALL(emitFreeLocalsHelpers, cb, us);
 }
 
-TCA emitCallToExit(CodeBlock& cb) {
-  return ARCH_SWITCH_CALL(emitCallToExit, cb);
-}
-
 TCA emitEndCatchHelper(CodeBlock& cb, UniqueStubs& us) {
   return ARCH_SWITCH_CALL(emitEndCatchHelper, cb, us);
+}
+
+void emitEnterTCHelper(CodeBlock& cb, UniqueStubs& us) {
+  ARCH_SWITCH_CALL(emitEnterTCHelper, cb, us);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -693,12 +693,13 @@ void UniqueStubs::emitAll() {
 
   ADD(decRefGeneric,  emitDecRefGeneric(cold));
 
-  ADD(callToExit,       emitCallToExit(main));
   ADD(endCatchHelper,   emitEndCatchHelper(frozen, *this));
   ADD(throwSwitchMode,  emitThrowSwitchMode(frozen));
 #undef ADD
 
   add("freeLocalsHelpers",  emitFreeLocalsHelpers(hot(), *this));
+
+  emitEnterTCHelper(main, *this);
 
   ResumeHelperEntryPoints rh;
   add("resumeInterpHelpers",  emitResumeInterpHelpers(main, *this, rh));

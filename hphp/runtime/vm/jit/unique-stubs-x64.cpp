@@ -237,9 +237,20 @@ TCA emitFreeLocalsHelpers(CodeBlock& cb, UniqueStubs& us) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-extern "C" void enterTCExit();
+extern "C" {
+void enterTCHelperX64(Cell* vm_sp,
+                      ActRec* vm_fp,
+                      TCA start,
+                      ActRec* firstAR,
+                      void* targetCacheBase,
+                      ActRec* stashedAR);
+void enterTCExitX64();
 
-TCA emitCallToExit(CodeBlock& cb) {
+}
+
+void emitEnterTCHelper(CodeBlock& cb, UniqueStubs& us) {
+  us.enterTCHelper = TCA(enterTCHelperX64);
+
   X64Assembler a { cb };
 
   // Emit a byte of padding. This is a kind of hacky way to avoid
@@ -249,7 +260,7 @@ TCA emitCallToExit(CodeBlock& cb) {
   auto const start = a.frontier();
   if (RuntimeOption::EvalHHIRGenerateAsserts) {
     Label ok;
-    a.emitImmReg(uintptr_t(enterTCExit), reg::rax);
+    a.emitImmReg(uintptr_t(enterTCExitX64), reg::rax);
     a.cmpq(reg::rax, *rsp());
     a.je8 (ok);
     a.ud2();
@@ -261,14 +272,14 @@ TCA emitCallToExit(CodeBlock& cb) {
   // got us into the TC was popped off the RSB by the ret that got us to this
   // stub.
   a.addq(8, rsp());
-  a.jmp(TCA(enterTCExit));
+  a.jmp(TCA(enterTCExitX64));
 
   // On a backtrace, gdb tries to locate the calling frame at address
   // returnRIP-1. However, for the first VM frame, there is no code at
   // returnRIP-1, since the AR was set up manually. For this frame,
   // record the tracelet address as starting from this callToExit-1,
   // so gdb does not barf.
-  return start;
+  us.callToExit = start;
 }
 
 TCA emitEndCatchHelper(CodeBlock& cb, UniqueStubs& us) {
