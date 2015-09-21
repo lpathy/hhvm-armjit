@@ -668,8 +668,8 @@ void lower(cmpqim& i, Vout& v) {
 void lower(vret& i, Vout& v) {
   // load [i.prevFP] -> d; return to [i.retAddr]
   auto const lr = PhysReg(arm::rLinkReg);
-  v << load{i.prevFP, i.d};
   v << load{i.retAddr, lr};
+  v << load{i.prevFP, i.d};
   v << aret{lr, i.args};
 }
 
