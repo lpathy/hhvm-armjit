@@ -247,13 +247,22 @@ FPInvOffset extract_spoff(TCA stub) {
 
     case Arch::ARM:
       {
-        constexpr int32_t offset_mask = 0xfff << 10;
-        DEBUG_ONLY constexpr int32_t add_instr = 0x910003b3;
-        int32_t inst = *(int32_t*)stub;
-        assert((inst & ~offset_mask) == add_instr);
-        auto offBytes = (inst & offset_mask) >> 10;
-        always_assert((offBytes % sizeof(Cell)) == 0);
-        return FPInvOffset{-(offBytes / int32_t{sizeof(Cell)})};
+        struct Decoder : public vixl::Decoder {
+          void VisitAddSubImmediate(vixl::Instruction* inst) {
+            int64_t immed =
+              inst->ImmAddSub() << ((inst->ShiftAddSub() == 1) ? 12 : 0);
+            switch (inst->Mask(vixl::AddSubOpMask)) {
+              case vixl::ADD: offset = immed; break;
+              case vixl::SUB: offset = -immed; break;
+              default: break;
+            }
+          }
+          folly::Optional<int32_t> offset;
+        };
+        Decoder decoder;
+        decoder.Decode((vixl::Instruction*)(stub));
+        always_assert(decoder.offset && (*decoder.offset % sizeof(Cell)) == 0);
+        return FPInvOffset{-(*decoder.offset / int32_t{sizeof(Cell)})};
       }
   }
   not_reached();
