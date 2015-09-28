@@ -30,19 +30,18 @@ namespace {
 const RegSet kGPCallerSaved =
   vixl::x0 | vixl::x1 | vixl::x2 | vixl::x3 |
   vixl::x4 | vixl::x5 | vixl::x6 | vixl::x7 |
-  vixl::x8 |
-  // x9  = rAsm
-  // x10 = rAsm2
-  vixl::x11 | vixl::x12 | vixl::x13 | vixl::x14 | vixl::x15 |
+  vixl::x8 | vixl::x9 | vixl::x10 | vixl::x11 |
+  vixl::x12 | vixl::x13 | vixl::x14; // | vixl::x15;
+  // x15 = rAsm2
   // x16 = rHostCallReg, used as ip0/tmp0 by MacroAssembler
   // x17 = used as ip1/tmp1 by MacroAssembler
-  vixl::x18;
+  // x18 = rAsm
 
 const RegSet kGPCalleeSaved =
-  // x19 = rvmsp()
-  // x20 = rvmtl()
-  vixl::x21 | vixl::x22 | vixl::x23 | vixl::x24 |
-  vixl::x25 | vixl::x26 | vixl::x27 | vixl::x28;
+  vixl::x19 | vixl::x20 | vixl::x21 | vixl::x22 |
+  vixl::x23 | vixl::x24 | vixl::x25 | vixl::x26;
+  // x27 = rvmtl()
+  // x28 = rvmsp()
   // x29 = rvmfp()
   // x30 = rLinkReg
 

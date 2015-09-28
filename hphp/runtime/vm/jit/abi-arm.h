@@ -41,8 +41,8 @@ namespace arm {
 const Abi& abi(CodeKind kind = CodeKind::Trace);
 
 inline PhysReg rvmfp() { return vixl::x29; }
-inline PhysReg rvmsp() { return vixl::x19; }
-inline PhysReg rvmtl() { return vixl::x20; }
+inline PhysReg rvmsp() { return vixl::x28; }
+inline PhysReg rvmtl() { return vixl::x27; }
 inline PhysReg rsp()   { return vixl::sp; }
 
 namespace detail {
@@ -140,8 +140,8 @@ inline vixl::Register svcReqArgReg(unsigned index) {
   return x2a(rarg(index + 1));
 }
 
-const vixl::Register rAsm(vixl::x9);
-const vixl::Register rAsm2(vixl::x10);
+const vixl::Register rAsm(vixl::x18);
+const vixl::Register rAsm2(vixl::x15);
 const vixl::Register rLinkReg(vixl::x30);
 const vixl::Register rHostCallReg(vixl::x16);
 
