@@ -31,8 +31,7 @@ const RegSet kGPCallerSaved =
   vixl::x0 | vixl::x1 | vixl::x2 | vixl::x3 |
   vixl::x4 | vixl::x5 | vixl::x6 | vixl::x7 |
   vixl::x8 | vixl::x9 | vixl::x10 | vixl::x11 |
-  vixl::x12 | vixl::x13 | vixl::x14; // | vixl::x15;
-  // x15 = rAsm2
+  vixl::x12 | vixl::x13 | vixl::x14 | vixl::x15;
   // x16 = rHostCallReg, used as ip0/tmp0 by MacroAssembler
   // x17 = used as ip1/tmp1 by MacroAssembler
   // x18 = rAsm
@@ -48,7 +47,7 @@ const RegSet kGPCalleeSaved =
 const RegSet kGPUnreserved = kGPCallerSaved | kGPCalleeSaved;
 
 const RegSet kGPReserved =
-  rAsm | rAsm2 | rHostCallReg | vixl::x17 |
+  rAsm | rHostCallReg | vixl::x17 |
   rvmsp() | rvmtl() | rvmfp() | rLinkReg |
   // ARM machines really only have 32 GP regs.  However, vixl has 33 separate
   // register codes, because it treats the zero register and stack pointer

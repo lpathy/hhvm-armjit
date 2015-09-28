@@ -141,7 +141,6 @@ inline vixl::Register svcReqArgReg(unsigned index) {
 }
 
 const vixl::Register rAsm(vixl::x18);
-const vixl::Register rAsm2(vixl::x15);
 const vixl::Register rLinkReg(vixl::x30);
 const vixl::Register rHostCallReg(vixl::x16);
 
