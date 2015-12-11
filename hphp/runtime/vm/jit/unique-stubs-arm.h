@@ -50,9 +50,9 @@ inline void unstashSavedRIP(Vout& v, Vreg fp) {
 
 template<class GenFunc>
 void alignNativeStack(Vout& v, GenFunc gen) {
-  v << subqi{8, reg::rsp, reg::rsp, v.makeReg()};
+  v << lea{rsp()[-8], rsp()};
   gen(v);
-  v << addqi{8, reg::rsp, reg::rsp, v.makeReg()};
+  v << lea{rsp()[8], rsp()};
 }
 
 ///////////////////////////////////////////////////////////////////////////////

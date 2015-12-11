@@ -28,7 +28,7 @@
 
 namespace HPHP { namespace jit { namespace arm {
 
-constexpr const std::size_t kEntireSmashableCallLen = smashableCallLen() + 12;
+constexpr const std::size_t kEntireSmashableCallLen = smashableCallLen() + 16;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -75,8 +75,15 @@ TCA emitSmashableCall(CodeBlock& cb, TCA target) {
 
   auto const start = cb.frontier();
 
+  // Push the address after data as return address
+  a.    Sub  (rAsm, vixl::sp, 8);
+  a.    Mov  (vixl::sp, rAsm);
+  a.    Adr  (rLinkReg, &after_data);
+  a.    Str  (rLinkReg, rAsm[0]);
   a.    Ldr  (rAsm, &target_data);
   a.    Blr  (rAsm);
+  // Pop return address. FIX: Does control ever come here?
+  a.    Add  (vixl::sp, vixl::sp, 8);
   // When the call returns, jump over the data.
   a.    B    (&after_data);
   assertx(cb.isFrontierAligned(8));
@@ -205,16 +212,27 @@ uint32_t smashableCmpqImm(TCA inst) {
 
 TCA smashableCallTarget(TCA call) {
   using namespace vixl;
-  Instruction* ldr = Instruction::Cast(call);
+  Instruction* sub = Instruction::Cast(call);
+  if (sub->Bits(31, 24) != 0xd1) return nullptr;
+
+  // FIX: Add checks
+  Instruction* mov = Instruction::Cast(call + 4);
+  Instruction* adr = Instruction::Cast(call + 8);
+  Instruction* str = Instruction::Cast(call + 12);
+
+  Instruction* ldr = Instruction::Cast(call + 16);
   if (ldr->Bits(31, 24) != 0x58) return nullptr;
 
-  Instruction* blr = Instruction::Cast(call + 4);
+  Instruction* blr = Instruction::Cast(call + 20);
   if (blr->Bits(31, 10) != 0x358FC0 || blr->Bits(4, 0) != 0) return nullptr;
 
-  Instruction* b = Instruction::Cast(call + 8);
+  Instruction* add = Instruction::Cast(call + 24);
+  if (add->Bits(31, 24) != 0x91) return nullptr;
+
+  Instruction* b = Instruction::Cast(call + 28);
   if (b->Bits(31, 26) != 0x5) return nullptr;
 
-  TCA tca = *reinterpret_cast<TCA*>(call + 12);
+  TCA tca = *reinterpret_cast<TCA*>(call + 32);
   assertx(((uintptr_t)tca & 7) == 0);
   return tca;
 }

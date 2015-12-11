@@ -38,8 +38,6 @@ void align(CodeBlock& cb, Alignment alignment, AlignContext context,
       break;
 
     case Alignment::SmashCmpq:
-      break;
-
     case Alignment::SmashMovq:
     case Alignment::SmashJmp:
       // Smashable movs and jmps are two instructions plus inline 64-bit data,
@@ -48,6 +46,10 @@ void align(CodeBlock& cb, Alignment alignment, AlignContext context,
       break;
 
     case Alignment::SmashCall:
+      // Smashable call is 8 instructions plus inline 64-bit data, so it must
+      // be 8 byte aligned.
+      if (!cb.isFrontierAligned(8)) a.Nop();
+      break;
     case Alignment::SmashJcc:
     case Alignment::SmashJccAndJmp:
       // Other smashable control flow instructions are three instructions plus

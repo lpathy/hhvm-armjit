@@ -46,8 +46,8 @@ inline PhysReg rvmtl() { return vixl::x27; }
 inline PhysReg rsp()   { return vixl::sp; }
 
 namespace detail {
-  const RegSet kVMRegs      = rvmfp() | rvmtl();
-  const RegSet kVMRegsNoSP  = rvmfp() | rvmtl() | rvmsp();
+  const RegSet kVMRegs      = rvmfp() | rvmtl() | rvmsp();
+  const RegSet kVMRegsNoSP  = rvmfp() | rvmtl();
 }
 
 inline RegSet vm_regs_with_sp() { return detail::kVMRegs; }
@@ -59,7 +59,7 @@ PhysReg rret_simd(size_t i);
 PhysReg rarg(size_t i);
 PhysReg rarg_simd(size_t i);
 
-constexpr size_t num_arg_regs() { return 7; }
+constexpr size_t num_arg_regs() { return 8; }
 constexpr size_t num_arg_regs_simd() { return 0; }
 
 RegSet arg_regs(size_t n);

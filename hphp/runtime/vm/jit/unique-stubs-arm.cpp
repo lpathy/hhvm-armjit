@@ -132,6 +132,9 @@ void emitEnterTCHelper(CodeBlock& cb, UniqueStubs& us) {
   });
 
   us.callToExit = vwrap(cb, [] (Vout& v) {
+    // FIX: from unique-stubs-x64.cpp:emitEnterTCHelper(), there should be
+    // call to HHIR assertions here. Only a.addq(8, rsp()) is moved here
+    v << lea{rsp()[8], rsp()};
     // Sync VM registers.
     v << store{rvmfp(), rvmtl()[rds::kVmfpOff]};
     v << store{rvmsp(), rvmtl()[rds::kVmspOff]};
@@ -156,15 +159,14 @@ void emitEnterTCHelper(CodeBlock& cb, UniqueStubs& us) {
 
     // Align (or unalign) the native stack (depending on whether we're calling
     // into a prologue or into resumeHelper).
-    if(RuntimeOption::EvalSimulateARM)
-      v << lea{rsp()[-8], rsp()};
+    v << lea{rsp()[-8], rsp()};
 
     auto const sf = v.makeReg();
     v << testq{rarg(5), rarg(5), sf};
 
     ifThen(v, CC_Z, sf, [&] (Vout& v) {
-      v << jmpr{rarg(2), leave_trace_regs()};
-      //v << jmpi{us.callToExit, leave_trace_regs()};
+      v << callr{rarg(2), leave_trace_regs()};
+      v << jmpi{us.callToExit, leave_trace_regs()};
     });
 
     v << push{v.cns(us.callToExit)};

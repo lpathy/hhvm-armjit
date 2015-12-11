@@ -588,18 +588,15 @@ TCA emitHandleSRHelper(CodeBlock& cb) {
     auto const ret = v.makeReg();
     loadMCG(v, args[0]);
     v << copy{rsp(), args[1]};
-    auto const meth = &MCGenerator::handleServiceRequest;
 
-    // Align the native stack
-    alignNativeStack(v, [&] (Vout& v) {
-      v << vcall{
-        CppCall::method(meth),
-        v.makeVcallArgs({args}),
-        v.makeTuple({ret}),
-        Fixup{},
-        DestType::SSA
-      };
-    });
+    auto const meth = &MCGenerator::handleServiceRequest;
+    v << vcall{
+      CppCall::method(meth),
+      v.makeVcallArgs({args}),
+      v.makeTuple({ret}),
+      Fixup{},
+      DestType::SSA
+    };
 
     // Pop the service ReqInfo off the stack.
     v << lea{rsp()[reqinfo_sz], rsp()};

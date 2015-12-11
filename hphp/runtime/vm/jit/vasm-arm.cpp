@@ -119,7 +119,6 @@ struct Vgen {
     , jccs(env.jccs)
     , bccs(env.bccs)
     , catches(env.catches)
-    , pushes(env.pushes)
   {}
 
   static void patch(Venv& env);
@@ -189,15 +188,7 @@ struct Vgen {
   void emit(const jcci& i);
   void emit(jmpi i) {
     // doesn't need to be smashable, just doing this because i'm lazy
-    if (pushes & 1) {
-      a->Sub(sp, sp, 8);
-      pushes ^= 1;
-    }
     emitSmashableJmp(*codeBlock, i.target);
-    if (pushes & 1) {
-      a->Add(sp, sp, 8);
-      pushes ^= 1;
-    }
   }
   void emit(const landingpad& i) {}
   void emit(const lea& i);
@@ -276,7 +267,6 @@ private:
   jit::vector<Venv::LabelPatch>& jccs;
   jit::vector<Venv::LabelPatch>& bccs;
   jit::vector<Venv::LabelPatch>& catches;
-  int pushes;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -300,17 +290,7 @@ void Vgen::patch(Venv& env) {
 ///////////////////////////////////////////////////////////////////////////////
 
 void Vgen::emit(const bindcall& i) {
-  vixl::Register sp(kSPRegInternalCode, 64);
-  int n;
-  if (pushes & 1) {
-    a->Sub(sp, sp, 8);
-    pushes ^= 1;
-  }
   emitSmashableCall(*codeBlock, i.stub);
-  if (pushes & 1) {
-    a->Add(sp, sp, 8);
-    pushes ^= 1;
-  }
   emit(unwind{{i.targets[0], i.targets[1]}});
 }
 
@@ -434,15 +414,7 @@ void Vgen::emit(const unwind& i) {
 void Vgen::emit(const jmp& i) {
   if (next == i.target) return;
   // B range is +/- 128MB but this uses BR
-  if (pushes & 1) {
-    a->Sub(sp, sp, 8);
-    pushes ^= 1;
-  }
   auto const start = emitSmashableJmp(*codeBlock, kEndOfTargetChain);
-  if (pushes & 1) {
-    a->Add(sp, sp, 8);
-    pushes ^= 1;
-  }
   jmps.push_back({start, i.target});
 }
 
@@ -454,15 +426,7 @@ void Vgen::emit(jcc i) {
       i = jcc{ccNegate(i.cc), i.sf, {i.targets[1], i.targets[0]}};
     }
     // B.cond range is +/- 1MB but this uses BR
-    if (pushes & 1) {
-      a->Sub(sp, sp, 8);
-      pushes ^= 1;
-    }
     auto const start = emitSmashableJcc(*codeBlock, kEndOfTargetChain, i.cc);
-    if (pushes & 1) {
-      a->Add(sp, sp, 8);
-      pushes ^= 1;
-    }
     jccs.push_back({start, i.targets[1]});
   }
   emit(jmp{i.targets[0]});
@@ -471,15 +435,7 @@ void Vgen::emit(jcc i) {
 void Vgen::emit(const jcci& i) {
   // if condition true, jump to another block; else jump to imm address
   // doesn't need to be smashable, target is another block in this vunit.
-  if (pushes & 1) {
-    a->Sub(sp, sp, 8);
-    pushes ^= 1;
-  }
   auto const start = emitSmashableJcc(*codeBlock, kEndOfTargetChain, i.cc);
-  if (pushes & 1) {
-    a->Add(sp, sp, 8);
-    pushes ^= 1;
-  }
   jccs.push_back({start, i.target});
   emit(jmpi{i.taken, i.args});
 }
